@@ -1,0 +1,30 @@
+[Unit]
+Description=Nanoleaf virtual switch to Hue Entertainment
+Wants=network-online.target nanoleaf-hue-virtual.service
+After=network-online.target nanoleaf-hue-virtual.service
+
+[Service]
+User=root
+UMask=0077
+Environment=HUE_CREDENTIALS=/var/lib/nanoleaf-hue-sync/hue-auth.json
+Environment=SYNC_LATEST=/run/nanoleaf-hue/latest.json
+Environment=HUE_STATUS=/run/nanoleaf-hue/hue-status.json
+RuntimeDirectory=nanoleaf-hue
+RuntimeDirectoryMode=0755
+StateDirectory=nanoleaf-hue-sync
+StateDirectoryMode=0700
+ExecStart=/opt/nanoleaf-hue/venv/bin/python /opt/nanoleaf-hue/daily_sync.py
+ExecStopPost=/opt/nanoleaf-hue/venv/bin/python /opt/nanoleaf-hue/syncplus_relay.py --restore
+Restart=always
+RestartSec=5
+KillMode=control-group
+TimeoutStopSec=45
+CapabilityBoundingSet=CAP_NET_RAW
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_PACKET AF_UNIX AF_NETLINK
+
+[Install]
+WantedBy=multi-user.target

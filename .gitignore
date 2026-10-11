@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+config.json
+*auth.json
+homekit.state*
+homekit-setup.json
+*.pcap
+*.pcapng
+*.key
+hap-test-*/
+probe-test-*/
+test-config-*/
+.env
