@@ -135,7 +135,7 @@ def homekit(data):
     while True:
         code = json.loads(SETUP.read_text())['pincode']
         print('\nHomeKit pairing code:', code)
-        print('On your iPhone: Home â†’ Add Accessory â†’ More Options â†’ ' + data['name'])
+        print('On your iPhone: Home -> Add Accessory -> More Options -> ' + data['name'])
         print('Enter the code; accept the uncertified accessory if prompted.')
         print('Then open Nanoleaf and check that the device appears.')
         ask('Press Enter after adding the device')
@@ -164,7 +164,7 @@ async def hue(data):
     finally:
         await api.close()
     if not areas:
-        print('Create an Entertainment area in the Hue app â†’ Settings â†’ Entertainment areas.')
+        print('Create an Entertainment area in the Hue app -> Settings -> Entertainment areas.')
         ask('Press Enter after creating the area')
         return await hue(data)
     data['hue_area'] = choose('Hue Entertainment area to synchronize',
@@ -269,7 +269,7 @@ if __name__ == '__main__':
     try:
         setup() if len(sys.argv) > 1 and sys.argv[1] == 'setup' else menu()
     except (KeyboardInterrupt, EOFError):
-        sys.exit('\nSetup interrupted. Resume from nanoleaf-hue â†’ Complete setup.')
+        sys.exit('\nSetup interrupted. Resume from nanoleaf-hue -> Complete setup.')
     except Exception as error:
         # Do not echo library exceptions: a Hue pairing response may contain keys.
         sys.exit('Operation failed (' + type(error).__name__ + '). '

@@ -24,9 +24,9 @@ retain their own licenses. See [NOTICE.md](NOTICE.md) and
 ## How it works
 
 ```text
-4D camera â†’ Sync+ UDP frames â†’ LXC relay â†’ physical Shapes
-                                 â””â”€â”€â”€â”€â†’ Hue Entertainment â†’ Hue lights
-Virtual HomeKit switch â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â†’ start/stop the bridge
+4D camera -> Sync+ UDP frames -> LXC relay -> physical Shapes
+                                  |-> Hue Entertainment -> Hue lights
+Virtual HomeKit switch -------------> start/stop the bridge
 ```
 
 The color stream uses extControl v2 on UDP port 60222, with RGB records for each
@@ -117,7 +117,7 @@ The wizard guides you through these steps in English:
 4. Asks for the Hue Bridge IP address and a name for the virtual light. It
    generates a unique virtual identity without cloning a physical Nanoleaf.
 5. Starts the virtual device and displays its **HomeKit pairing code**. On your
-   iPhone, open Home â†’ Add Accessory â†’ More Options, then check that the device
+   iPhone, open Home -> Add Accessory -> More Options, then check that the device
    appears in Nanoleaf. The console waits for and verifies successful pairing.
 6. Asks you to press the Hue Bridge button and stores the resulting credentials
    privately.
@@ -131,7 +131,7 @@ The wizard guides you through these steps in English:
    the app to test synchronization while moving images play on your television.
 
 Phone interaction and pressing the Hue Bridge button are required; a container
-command cannot replace those actions. Also enable **CT â†’ Options â†’ Start at boot**
+command cannot replace those actions. Also enable **CT -> Options -> Start at boot**
 in Proxmox. The installer inside the container does not administer the host.
 
 ### Direct download and installation
