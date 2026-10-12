@@ -1,0 +1,24 @@
+[Unit]
+Description=Nanoleaf Hue Bridge web portal
+Wants=network-online.target nanoleaf-hue-virtual.service nanoleaf-hue-sync.service
+After=network-online.target nanoleaf-hue-virtual.service nanoleaf-hue-sync.service
+
+[Service]
+User=root
+UMask=0077
+EnvironmentFile=/etc/nanoleaf-hue/portal.env
+ExecStart=/opt/nanoleaf-hue/venv/bin/python /opt/nanoleaf-hue/control_panel.py
+Restart=on-failure
+RestartSec=5
+StateDirectory=nanoleaf-hue-sync
+StateDirectoryMode=0700
+ReadWritePaths=/run/nanoleaf-hue
+CapabilityBoundingSet=
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+
+[Install]
+WantedBy=multi-user.target

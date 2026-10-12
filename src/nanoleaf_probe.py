@@ -66,6 +66,19 @@ class Device:
             self.info.update(stored.get("info", {}))
             self.ssdp_uuid = stored.get("ssdp_uuid", self.ssdp_uuid)
 
+        # Private internal API authorization, never a portal login credential.
+        self.state_file.parent.mkdir(parents=True, exist_ok=True)
+        control_path = self.state_file.parent / 'web-control-auth.json'
+        if control_path.exists():
+            control_token = json.loads(control_path.read_text())['token']
+        else:
+            control_token = secrets.token_urlsafe(32)
+            fd = os.open(control_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+            with os.fdopen(fd, 'w') as stream:
+                json.dump({'token': control_token}, stream)
+        self.tokens.add(control_token)
+        self.save()
+
     def save(self):
         self.state_file.parent.mkdir(parents=True, exist_ok=True)
         temporary = self.state_file.with_suffix(".tmp")

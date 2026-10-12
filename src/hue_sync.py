@@ -14,31 +14,22 @@ import time
 
 from extcontrol_probe import decode_frame
 from config import CONFIG
+from panel_mapping import channel_colors, MappingFile
+from brightness import BrightnessFile, scale
+from portal_settings import Store, TUNING
+from color_response import ColorResponse
 
 
-def publish(phase, count=0):
+def publish(phase, count=0, mapping_error=None, commands=None):
     path = os.environ.get('HUE_STATUS')
     if path:
         target = Path(path); temporary = target.with_suffix('.tmp')
-        temporary.write_text(json.dumps({'phase': phase, 'time': time.time(), 'frames': count}))
+        temporary.write_text(json.dumps({'phase': phase, 'time': time.time(), 'frames': count,
+                                         'mappingError': mapping_error,
+                                         'colors': {str(ch): [r//257, g//257, b//257]
+                                                    for ch, r, g, b in (commands or [])}}))
         os.chmod(temporary, 0o644)
         temporary.replace(target)
-
-
-def channel_colors(panels, channel_ids, mapping=None):
-    colors = {p['panelId']: p['rgb'] for p in panels}
-    if not colors:
-        raise ValueError('no colors available')
-    average = [round(sum(rgb[i] for rgb in colors.values()) / len(colors)) for i in range(3)]
-    mapping = mapping or {}
-    result = []
-    for channel in channel_ids:
-        panel = mapping.get(str(channel))
-        if panel is not None and panel not in colors:
-            raise ValueError('mapped panel missing from current state')
-        rgb = average if panel is None else colors[panel]
-        result.append((channel, *(value * 257 for value in rgb)))
-    return result
 
 
 async def run(args):
@@ -69,38 +60,55 @@ async def run(args):
         finally:
             await api.close()
         return
-    creds = json.loads(credentials_path.read_text())
-    session = EntertainmentSession(args.bridge, creds['username'], creds['clientkey'])
+    store = Store(args.config) if args.config else None
+    config = store.read()['active'] if store else None
+    async def connect(current):
+        bridge = current['bridge'] if current else args.bridge
+        path = credentials_path if bridge == args.bridge else credentials_path.parent/'hue-pairings'/(bridge+'.json')
+        creds = json.loads(path.read_text())
+        session = EntertainmentSession(bridge, creds['username'], creds['clientkey'])
+        try:
+            areas = await session.get_entertainment_areas()
+            area_id = current['area'] if current else args.area
+            area = next((a for a in areas if a.id == area_id), None) if area_id else (areas[0] if len(areas) == 1 else None)
+            if area is None or not area.channels:
+                raise ValueError('Select an available entertainment area')
+            return session, area, areas
+        except Exception:
+            await session.aclose()
+            raise
+    session, area, areas = await connect(config)
     publish('waiting')
     try:
-        areas = await session.get_entertainment_areas()
         if args.command == 'areas':
-            print(json.dumps([{'id': a.id, 'name': a.name,
-                               'channels': [ch.channel_id for ch in a.channels]} for a in areas]))
+            print(json.dumps([{'id': a.id, 'name': a.name, 'channels': [ch.channel_id for ch in a.channels]} for a in areas]))
             return
-        area = next((a for a in areas if a.id == args.area), None) if args.area else (
-            areas[0] if len(areas) == 1 else None)
-        if area is None:
-            raise ValueError('select one existing entertainment area with --area; use areas command')
-        mapping = json.loads(Path(args.mapping).read_text()) if args.mapping else {}
         ids = [ch.channel_id for ch in area.channels]
-        if not ids or set(mapping) - {str(ch) for ch in ids}:
-            raise ValueError('invalid or empty channel mapping')
+        mapping_file = MappingFile(args.mapping, ids)
+        mapping = config['mapping'] if config else mapping_file.reload()
+        settings_path = args.brightness or (str(Path(args.mapping).with_name('brightness.json')) if args.mapping else None)
+        brightness_file = BrightnessFile(settings_path, ids)
+        brightness = config['brightness'] if config else brightness_file.reload()
+        response = ColorResponse()
+        next_mapping_check = 0
         loop = asyncio.get_running_loop()
         stop = asyncio.Event()
         for sig in (signal.SIGTERM, signal.SIGINT):
             loop.add_signal_handler(sig, stop.set)
         state = {}; count = 0; started = False; last_frame = 0; next_status = 0
+        identify = {}
+        identify_path = Path(os.environ.get('HUE_IDENTIFY', '/run/nanoleaf-hue/identify.json'))
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as receiver:
-            receiver.bind(('127.0.0.1', 60223)); receiver.setblocking(False)
+            receiver.bind(('127.0.0.1', args.listen_port)); receiver.setblocking(False)
             deadline = float('inf') if args.continuous else time.monotonic() + args.seconds
-            print('Hue consumer ready on loopback UDP60223; waiting for actual colors', flush=True)
+            print('Hue consumer ready; waiting for actual colors', flush=True)
             while not stop.is_set() and time.monotonic() < deadline:
                 try:
                     data, peer = await asyncio.wait_for(loop.sock_recvfrom(receiver, 65535), 0.5)
                 except asyncio.TimeoutError:
                     if started and time.monotonic() - last_frame > 2:
                         await session.stop(); started = False
+                        response = ColorResponse()
                         publish('waiting', count)
                     continue
                 try:
@@ -109,18 +117,51 @@ async def run(args):
                     continue
                 for panel in panels:
                     state[panel['panelId']] = panel
-                commands = channel_colors(list(state.values()), ids, mapping)
+                if time.monotonic() >= next_mapping_check:
+                    if store:
+                        updated = store.read(retain=True)['active']
+                        if (updated['bridge'], updated['area']) != (config['bridge'], config['area']):
+                            if started:
+                                await session.stop()
+                            await session.aclose()
+                            started = False
+                            session, area, areas = await connect(updated)
+                            ids = [ch.channel_id for ch in area.channels]
+                            response = ColorResponse()
+                        config = updated
+                        mapping, brightness = config['mapping'], config['brightness']
+                    else:
+                        mapping, brightness = mapping_file.reload(), brightness_file.reload()
+                    try:
+                        identify = json.loads(identify_path.read_text())
+                    except (OSError, ValueError):
+                        identify = {}
+                    next_mapping_check = time.monotonic() + 0.5
+                mapping_error = store.error if store else (mapping_file.error or brightness_file.error)
+                commands = []
+                for channel in ids:
+                    selected = {str(channel): mapping[str(channel)]} if str(channel) in mapping else {}
+                    try:
+                        commands.extend(channel_colors(list(state.values()), [channel], selected))
+                    except ValueError:
+                        commands.extend(channel_colors(list(state.values()), [channel]))
+                        mapping_error = 'Selected panel unavailable; using the general average'
+                commands = response.process(commands, config['tuning'] if config else TUNING, brightness, time.monotonic())
+                if (identify.get('area') == area.id and type(identify.get('expires')) in (int, float)
+                        and 0 < identify['expires'] - time.time() <= 2):
+                    white = {ch: (r,g,b) for ch,r,g,b in scale([(ch,65535,65535,65535) for ch in ids], brightness)}
+                    commands = [(ch, *(white[ch] if ch == identify.get('channel') else (r, g, b)))
+                                for ch, r, g, b in commands]
                 if not started:
                     publish('connecting', count)
                     await session.start(area.id, stop_others=False)
                     started = True
                 if stop.is_set():
                     break
-                session.send([LightColorCommand(channel_id=ch, red=r, green=g, blue=b)
-                              for ch, r, g, b in commands])
+                session.send([LightColorCommand(channel_id=ch, red=r, green=g, blue=b) for ch, r, g, b in commands])
                 count += 1; last_frame = time.monotonic()
                 if last_frame >= next_status:
-                    publish('streaming', count); next_status = last_frame + 1
+                    publish('streaming', count, mapping_error, commands); next_status = last_frame + 1
             print(json.dumps({'hueFramesSent': count}), flush=True)
     finally:
         await session.aclose()
@@ -130,13 +171,18 @@ async def run(args):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('command', choices=('pair', 'areas', 'stream'))
-    parser.add_argument('--bridge', default=CONFIG["hue_ip"])
+    parser.add_argument('--bridge', default=CONFIG['hue_ip'])
     parser.add_argument('--credentials', default=os.environ.get('HUE_CREDENTIALS', '/var/lib/nanoleaf-hue-sync/hue-auth.json'))
     parser.add_argument('--area')
-    parser.add_argument('--mapping')
+    parser.add_argument('--config', default=os.environ.get('HUE_CONFIG'))
+    parser.add_argument('--listen-port', type=int, default=60223)
+    parser.add_argument('--mapping', default=os.environ.get('HUE_MAPPING'))
+    parser.add_argument('--brightness', default=os.environ.get('HUE_BRIGHTNESS'))
     parser.add_argument('--seconds', type=int, default=60)
     parser.add_argument('--continuous', action='store_true')
     args = parser.parse_args()
+    if not 1 <= args.listen_port <= 65535:
+        parser.error('listen port must be 1..65535')
     if not 1 <= args.seconds <= 3600:
         parser.error('duration must be 1..3600 seconds')
     os.umask(0o077)

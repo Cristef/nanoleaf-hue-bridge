@@ -18,6 +18,7 @@ from config import PATH, validate
 ROOT = Path('/opt/nanoleaf-hue')
 VIRTUAL = 'nanoleaf-hue-virtual'
 SYNC = 'nanoleaf-hue-sync'
+PANEL = 'nanoleaf-hue-panel'
 AUTH = Path('/var/lib/nanoleaf-hue-sync/hue-auth.json')
 SETUP = Path('/var/lib/nanoleaf-hue-virtual/homekit-setup.json')
 
@@ -134,7 +135,7 @@ def homekit(data):
     while True:
         code = json.loads(SETUP.read_text())['pincode']
         print('\nHomeKit pairing code:', code)
-        print('On your iPhone: Home → Add Accessory → More Options → ' + data['name'])
+        print('On your iPhone: Home â†’ Add Accessory â†’ More Options â†’ ' + data['name'])
         print('Enter the code; accept the uncertified accessory if prompted.')
         print('Then open Nanoleaf and check that the device appears.')
         ask('Press Enter after adding the device')
@@ -163,7 +164,7 @@ async def hue(data):
     finally:
         await api.close()
     if not areas:
-        print('Create an Entertainment area in the Hue app → Settings → Entertainment areas.')
+        print('Create an Entertainment area in the Hue app â†’ Settings â†’ Entertainment areas.')
         ask('Press Enter after creating the area')
         return await hue(data)
     data['hue_area'] = choose('Hue Entertainment area to synchronize',
@@ -197,24 +198,27 @@ def setup():
         network = ipaddress.IPv4Network(f'{ip}/{prefix}', strict=False)
         if any(ipaddress.IPv4Address(v) not in network for v in (source, target)):
             raise ValueError('The 4D and Shapes must be on the same LAN/interface as the container.')
-        data = {'interface': interface, 'ip': ip, 'source_ip': source, 'target_ip': target,
+        data = {'interface': interface, 'ip': ip, 'prefix': prefix, 'source_ip': source, 'target_ip': target,
                 'source_mac': neighbor(source, interface), 'target_mac': neighbor(target, interface),
                 'hue_ip': address('Hue Bridge IP address'),
                 'name': ask('Virtual light name', 'Shapes Hue Bridge'),
                 'identity': '02:' + ':'.join(f'{x:02x}' for x in secrets.token_bytes(5)),
                 'hue_area': '00000000-0000-0000-0000-000000000000'}
         save(data)
-    for unit in (VIRTUAL, SYNC):
+    for unit in (VIRTUAL, SYNC, PANEL):
         shutil.copyfile(ROOT / 'systemd' / (unit + '.service'),
                         '/etc/systemd/system/' + unit + '.service')
     command('systemctl', 'daemon-reload')
     command('systemctl', 'enable', '--now', VIRTUAL)
     homekit(data)
     asyncio.run(hue(data))
-    command('systemctl', 'enable', '--now', SYNC)
+    from portal_install import provision
+    provision(data)
+    command('systemctl', 'enable', '--now', SYNC, PANEL)
     print('\nInstallation complete. Turn on/off ' + data['name'] + ' in the Nanoleaf app.')
     print('Keep the physical Shapes selected in Sync+ and enable Start at boot for the LXC in Proxmox.')
-    print('Hue lights receive the average panel color. Maintenance menu: nanoleaf-hue')
+    print('Portal: http://' + data['ip'] + ':8080 — create your username and password there.')
+    print('Map panel colors, adjust brightness and save profiles in the portal. Maintenance menu: nanoleaf-hue')
 
 
 def menu():
@@ -226,25 +230,35 @@ def menu():
         if choice == 'exit': return
         if choice == 'setup': setup(); continue
         if choice == 'status':
-            subprocess.run(['systemctl', '--no-pager', 'status', VIRTUAL, SYNC], check=False)
+            subprocess.run(['systemctl', '--no-pager', 'status', VIRTUAL, SYNC, PANEL], check=False)
             status = Path('/run/nanoleaf-hue/status.json')
             if status.exists(): print(status.read_text())
         elif choice == 'logs':
-            command('journalctl', '-u', SYNC, '-u', VIRTUAL, '-n', '50', '--no-pager')
+            command('journalctl', '-u', SYNC, '-u', VIRTUAL, '-u', PANEL, '-n', '50', '--no-pager')
         elif choice == 'code':
             print('HomeKit pairing code:', json.loads(SETUP.read_text())['pincode'])
         elif choice == 'area':
             data = json.loads(PATH.read_text())
             command('systemctl', 'stop', SYNC)
             asyncio.run(hue(data))
+            from portal_install import provision
+            from portal_settings import Store, revision
+            store=Store(AUTH.parent/'portal-settings.json')
+            def change(config):
+                config['active']['bridge']=data['hue_ip'];config['active']['area']=data['hue_area']
+                config['active']['mapping']={};config['active']['brightness']['channels']={}
+                return config
+            store.update(revision(store.read()),change)
+            provision(data)
+            command('systemctl', 'restart', PANEL)
             command('systemctl', 'start', SYNC)
         elif choice == 'restart':
             command('systemctl', 'stop', SYNC)
-            command('systemctl', 'restart', VIRTUAL)
+            command('systemctl', 'restart', VIRTUAL, PANEL)
             command('systemctl', 'start', SYNC)
         elif choice == 'remove':
             if ask('Deactivate services and restore ARP? [y/N]', 'n').lower() == 'y':
-                command('systemctl', 'disable', '--now', SYNC, VIRTUAL)
+                command('systemctl', 'disable', '--now', PANEL, SYNC, VIRTUAL)
                 print('Services deactivated; configuration and pairings are preserved.')
 
 
@@ -255,7 +269,7 @@ if __name__ == '__main__':
     try:
         setup() if len(sys.argv) > 1 and sys.argv[1] == 'setup' else menu()
     except (KeyboardInterrupt, EOFError):
-        sys.exit('\nSetup interrupted. Resume from nanoleaf-hue → Complete setup.')
+        sys.exit('\nSetup interrupted. Resume from nanoleaf-hue â†’ Complete setup.')
     except Exception as error:
         # Do not echo library exceptions: a Hue pairing response may contain keys.
         sys.exit('Operation failed (' + type(error).__name__ + '). '

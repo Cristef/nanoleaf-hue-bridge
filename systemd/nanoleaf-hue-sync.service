@@ -8,6 +8,8 @@ User=root
 UMask=0077
 Environment=HUE_CREDENTIALS=/var/lib/nanoleaf-hue-sync/hue-auth.json
 Environment=SYNC_LATEST=/run/nanoleaf-hue/latest.json
+Environment=HUE_CONFIG=/var/lib/nanoleaf-hue-sync/portal-settings.json
+Environment=HUE_IDENTIFY=/run/nanoleaf-hue/identify.json
 Environment=HUE_STATUS=/run/nanoleaf-hue/hue-status.json
 RuntimeDirectory=nanoleaf-hue
 RuntimeDirectoryMode=0755

@@ -29,6 +29,8 @@ def validate(data):
         raise ValueError('invalid interface')
     if not isinstance(data['name'], str) or not 1 <= len(data['name']) <= 48 or any(ord(c) < 32 for c in data['name']):
         raise ValueError('invalid accessory name')
+    if type(data.get('prefix',24)) is not int or not 1 <= data.get('prefix',24) <= 30:
+        raise ValueError('invalid LAN prefix')
     uuid.UUID(data['hue_area'])
     return data
 

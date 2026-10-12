@@ -13,4 +13,4 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - run: python -m pip install -r requirements.txt
       - run: python tests/run.py
-      - run: bash -n install.sh bootstrap.sh
+      - run: bash -n install.sh bootstrap.sh update.sh
