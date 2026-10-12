@@ -13,7 +13,7 @@ removed it from the 4D's actual receiver configuration.
 
 This is an **experimental prerelease**. Direct reception and Hue output work on
 the development installation, including operation after removing HomeKit.
-The complete fresh-container Desktop-only onboarding still needs an independent
+The complete fresh-system Desktop-only onboarding still needs an independent
 hardware installation test. Nanoleaf app/firmware compatibility is not guaranteed.
 
 ## How it works
@@ -31,24 +31,31 @@ two separate steps; both are required. This project does not access the camera's
 
 ## Before installing
 
-- A fresh Debian 12 LXC running systemd: 1 CPU, 512 MB RAM, at least 4 GB disk,
+**Proxmox is not required.** Debian 12 can run on a physical machine, a VM,
+or an LXC/system container on any suitable platform. It must run systemd and
+allow LAN discovery and incoming TCP/UDP traffic. A minimal Docker-style
+application container without systemd is not supported by this installer.
+Hardware testing so far used Debian 12 in LXC; other hosts have not yet been
+independently validated.
+
+- A fresh Debian 12 system running systemd: 1 CPU, 512 MB RAM, at least 4 GB disk,
   Internet access and a stable IPv4 address.
 - A Nanoleaf 4D and its IPv4 address; Screen Mirror must be available.
-- Nanoleaf Desktop on a computer on the **same LAN** as the container and 4D.
+- Nanoleaf Desktop on a computer on the **same LAN** as the Debian system and 4D.
 - A Hue Bridge supporting Entertainment, its IPv4 address, and an Entertainment
   area created in the Hue app with the lights you want to use.
 - Access to the Hue Bridge's physical link button for initial authorization.
 
-The installer detects the container address/interface and generates the virtual
+The installer detects the Debian system address/interface and generates the virtual
 identity. Physical device MAC addresses, physical Shapes and HomeKit codes are not
 needed. Configure VLANs, DHCP reservations and Wi-Fi client isolation beforehand;
-the installer does not configure Proxmox, routers or access points. Allow mDNS
+the installer does not configure your virtualization platform, routers or access points. Allow mDNS
 discovery (UDP 5353), the virtual API (TCP 16021), Sync+ (UDP 60222), and the
 portal (TCP 8080) on your trusted LAN. Run one bridge instance for this configuration.
 
-## Install on a fresh container
+## Install on a fresh Debian 12 system
 
-Run this block as root in the Debian 12 container:
+Run this block as root on the Debian 12 system:
 
 ```bash
 apt-get update && apt-get install -y ca-certificates curl
@@ -68,7 +75,10 @@ Then add the receiver to the 4D Sync+ configuration in Desktop, set its position
 save and start Screen Mirror. If necessary, finish pairing later in the portal.
 Press the physical Hue Bridge button when prompted and select your Entertainment area.
 
-Enable **Start at boot** for the LXC in Proxmox. Open `http://CONTAINER_IP:8080/`
+Ensure the Debian system starts automatically if you want continuous operation.
+For a VM or container, enable autostart in your hosting platform (for example,
+**Start at boot** in Proxmox). The installer enables the bridge services at boot.
+Open `http://DEBIAN_IP:8080/`
 and create your username and password (minimum eight characters). No access key
 is required on first use. See the [complete installation and pairing guide](docs/INSTALLATION_V4.md).
 
@@ -82,8 +92,8 @@ is required on first use. See the [complete installation and pairing guide](docs
 - **Settings & pairing:** reopen the two-minute Desktop pairing window, authorize
   a Hue Bridge, refresh lights and choose another Entertainment area.
 - **Diagnostics:** check API pairing, recent frames, Hue stream phase and sent colors.
-- **Backup:** export and review/import settings without credentials. Use a Proxmox
-  snapshot for full recovery; a settings export is not a pairing backup.
+- **Backup:** export and review/import settings without credentials. Use a full system backup or a VM/container
+  snapshot for recovery; a settings export is not a pairing backup.
 
 The mapping supports all channels in the selected Hue area, including a synthetic
 ten-channel test. Hardware validation used two Hue lights; larger areas have not
@@ -101,7 +111,7 @@ unchanged controls from version 3.
 
 ## Daily operation
 
-Keep the container and services running. Turn the virtual device on/off in
+Keep the Debian system and services running. Turn the virtual device on/off in
 Desktop or the portal. On waits for incoming colors before claiming the Hue area;
 Off releases it without switching off the bulbs. Two seconds without fresh frames
 releases the stream; new frames resume it while the virtual device is on.
@@ -110,7 +120,7 @@ Avoid other applications streaming to the same Hue Entertainment area.
 
 ## Upgrade from version 3
 
-Take a container snapshot first. Download/extract version 4 and run:
+Take a full system backup or VM/container snapshot first. Download/extract version 4 and run:
 
 ```bash
 bash update.sh
@@ -138,7 +148,7 @@ streams. Consult portal diagnostics or `nanoleaf-hue` -> Diagnostics.
 The portal uses password hashing, authenticated sessions and origin/CSRF checks.
 It is HTTP on a trusted LAN: do not expose it to the Internet. First-login setup
 is available until the initial account is created; finish it promptly. Internal
-API tokens and Hue credentials stay on the container and are excluded from exports.
+API tokens and Hue credentials stay on the Debian system and are excluded from exports.
 
 ## Development and license
 

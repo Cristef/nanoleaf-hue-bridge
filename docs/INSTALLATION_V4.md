@@ -2,11 +2,14 @@
 
 ## Prepare the devices
 
-Create a fresh Debian 12 LXC with systemd, Internet access, 1 CPU, 512 MB RAM
+Prepare a fresh Debian 12 system with systemd, Internet access, 1 CPU, 512 MB RAM
 and at least 4 GB disk space. Give it a stable address on the same LAN as your
 Nanoleaf 4D, Hue Bridge and computer running Nanoleaf Desktop. Configure VLANs
 and DHCP reservations before installation. The installer does not change your
-router, Proxmox bridge or access point settings.
+router, host networking or access point settings. Proxmox is optional: a physical
+machine, VM or LXC/system container can provide Debian 12. The installer requires
+systemd; a minimal application container without it is unsupported. Hardware
+validation so far used LXC.
 
 Know the 4D and Hue Bridge IPv4 addresses. The container address and interface
 are detected. You do not need physical device MAC addresses, physical Shapes,
@@ -46,8 +49,8 @@ accessory service and does not provide a HomeKit QR code or PIN.
 ## Hue and portal
 
 Press the Hue Bridge's physical link button when requested. Select an existing
-Entertainment area from the list. Set the LXC to start at boot in Proxmox.
-Open `http://CONTAINER_IP:8080/` and create a username and password (at least
+Entertainment area from the list. Enable automatic startup of the Debian host or its VM/container in your platform.
+Open `http://DEBIAN_IP:8080/` and create a username and password (at least
 eight characters). No portal access key is required on first use.
 
 The nine virtual panel IDs are stable. Assign a panel or a group to each Hue
@@ -71,5 +74,5 @@ stream; new frames resume it if the virtual is on.
 - **Disconnected on iPhone:** expected; use Desktop and the portal.
 
 Use `nanoleaf-hue` for pairing, status, diagnostics, changing area, restarting or
-deactivating services. Credentials stay on the container and are excluded from
+deactivating services. Credentials stay on the Debian system and are excluded from
 settings exports. Do not expose the unencrypted LAN portal to the Internet.
