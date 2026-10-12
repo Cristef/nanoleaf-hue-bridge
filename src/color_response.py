@@ -10,8 +10,20 @@ class ColorResponse:
         self.previous = {}
         self.time = None
 
-    def process(self, commands, settings, levels, now):
+    def process(self, commands, settings, levels, now, channel_settings=None):
         settings = tuning(settings)
+        if channel_settings:
+            # Each light has independent smoothing history; global settings are defaults.
+            if not hasattr(self,'channels'): self.channels={}
+            result=[]
+            for command in commands:
+                channel,*rgb=command
+                override=channel_settings.get(str(channel),{})
+                individual={**settings,**{k:v for k,v in override.items() if k in settings}}
+                corrected=[min(65535,round(v*override.get(k,100)/100)) for v,k in zip(rgb,('redGain','greenGain','blueGain'))]
+                processor=self.channels.setdefault(channel,ColorResponse())
+                result.extend(processor.process([(channel,*corrected)],individual,levels,now))
+            return result
         adjusted = []
         for channel, r, g, b in commands:
             if max(r, g, b) / 257 < settings['blackThreshold']:

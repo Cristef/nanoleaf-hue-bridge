@@ -1,7 +1,7 @@
 # Nanoleaf Hue Bridge
 
 Use a **Nanoleaf 4D camera to synchronize Philips Hue lights** through a virtual
-Shapes receiver. Version **4.0.0** receives Sync+ UDP colors directly from the
+Shapes receiver. Version **4.1.0** receives Sync+ UDP colors directly from the
 4D, with nine virtual panels, guided Debian 12 installation and an English web portal.
 Physical Shapes are no longer required by the receiver, and no ARP relay is started.
 
@@ -51,7 +51,7 @@ identity. Physical device MAC addresses, physical Shapes and HomeKit codes are n
 needed. Configure VLANs, DHCP reservations and Wi-Fi client isolation beforehand;
 the installer does not configure your virtualization platform, routers or access points. Allow mDNS
 discovery (UDP 5353), the virtual API (TCP 16021), Sync+ (UDP 60222), and the
-portal (TCP 8080) on your trusted LAN. Run one bridge instance for this configuration.
+portal (TCP 80 and 8080) on your trusted LAN. Run one bridge instance for this configuration.
 
 ## Install on a fresh Debian 12 system
 
@@ -59,14 +59,14 @@ Run this block as root on the Debian 12 system:
 
 ```bash
 apt-get update && apt-get install -y ca-certificates curl
-curl -fL https://raw.githubusercontent.com/Cristef/nanoleaf-hue-bridge/v4.0.0/bootstrap.sh -o /root/nanoleaf-hue-bootstrap.sh
+curl -fL https://raw.githubusercontent.com/Cristef/nanoleaf-hue-bridge/v4.1.0/bootstrap.sh -o /root/nanoleaf-hue-bootstrap.sh
 bash /root/nanoleaf-hue-bootstrap.sh
 ```
 
 The bootstrap downloads this release. The installer upgrades Debian packages,
 installs libraries and a Python environment, creates services, and guides you
 through addresses, virtual name, Desktop pairing, Hue authorization and area selection.
-Alternatively, extract the [release ZIP](https://github.com/Cristef/nanoleaf-hue-bridge/releases/tag/v4.0.0)
+Alternatively, extract the [release ZIP](https://github.com/Cristef/nanoleaf-hue-bridge/releases/tag/v4.1.0)
 and run `bash install.sh` from its directory.
 
 During Nanoleaf pairing, choose the **power-button method in Desktop** within
@@ -84,30 +84,44 @@ is required on first use. See the [complete installation and pairing guide](docs
 
 ## Use the web portal
 
-- **Lights:** watch live panel colors and assign a panel or panel group to each
-  Hue channel. Groups use the mean color; multiple lights can share a group.
-  Adjust global and individual brightness, and identify a lamp while streaming.
-- **Profiles:** save and switch mapping, area, brightness and color-response settings.
-- **Color response:** adjust smoothing, saturation and black threshold.
-- **Settings & pairing:** reopen the two-minute Desktop pairing window, authorize
-  a Hue Bridge, refresh lights and choose another Entertainment area.
-- **Diagnostics:** check API pairing, recent frames, Hue stream phase and sent colors.
-- **Backup:** export and review/import settings without credentials. Use a full system backup or a VM/container
-  snapshot for recovery; a settings export is not a pairing backup.
+Open **http://nanoleaf-hue.local/** on the same LAN, or use
+`http://DEBIAN_IP:8080/` as a fallback. The short name uses mDNS and port 80;
+client/network mDNS support is required. No router DNS changes or HTTPS are configured.
+For multiple installations, set a unique `portal_name` ending in `.local` in
+`/etc/nanoleaf-hue/config.json` before provisioning/restarting the services.
 
-The mapping supports all channels in the selected Hue area, including a synthetic
-ten-channel test. Hardware validation used two Hue lights; larger areas have not
-yet been tested with real lights. Positioning in Desktop determines the colors
-sent to the nine virtual panels. Map lights to those panels in the portal.
+Create your username and password on first use (minimum eight characters).
+The portal has six separate, bookmarkable views. Unsaved drafts survive switching
+between pages; they become active only after saving.
 
-Version 4 screenshots below use synthetic lights and addresses. Virtual panel IDs
-are 1 through 9. The profile and color-response screenshots illustrate the
-unchanged controls from version 3.
+| Page | What to do |
+| --- | --- |
+| Live | Watch nine hexagons and the last RGB output sent to each Hue. Open Immersive preview for a full-viewport glow display; exit with Esc or the exit button. Run a temporary solid, sequence or identify test for up to 60 seconds. |
+| Mapping | Select a light and its panels. Preview an automatic suggestion from Hue channel positions. Spread mode expands relative positions; change axis/mirror and preview repeatedly, then explicitly save. Identical positions can share a panel. |
+| Color | Adjust global/individual brightness, smoothing, saturation, black threshold and per-light RGB gains. |
+| Profiles | Save and apply area, mapping, brightness and color-response presets. |
+| Setup | Discover/change the 4D source, open the 120-second Desktop pairing window, authorize Hue, select an Entertainment area, and export/review/import settings. Source selection does not register Sync+ recipients automatically: complete that in Desktop. |
+| System | Inspect connection diagnostics and release notes. Complete releases are installed with `update.sh`; GUI update/recovery handles compatible locally staged bundles only. |
 
-![Assign lights to live virtual panels](docs/images/portal-lights-v4.png)
-![Open Desktop pairing in Settings](docs/images/portal-pairing-v4.png)
-![Save and apply profiles](docs/images/portal-profiles.jpg)
-![Adjust color response](docs/images/portal-color-response.jpg)
+Choose **Auto**, **Light** or **Dark** in the header. Auto follows your system
+appearance; the preference stays in your browser. Page and feedback transitions
+respect reduced-motion preferences. Immersive mode fills the page, while browser
+chrome remains visible; it does not alter the actual lamp colors or configuration.
+Temporary color tests do take over the selected Hue area, respect saved brightness
+and response, and automatically return to the previous synchronization mode.
+
+Mapping supports all channels in the selected area; automated and browser checks
+include ten synthetic channels. Real hardware validation used two Hue lights.
+Desktop placement controls what the 4D sends to the virtual panels. The portal
+mapping then chooses which of those colors each Hue follows. The decorative
+hexagon layout is not a physical-position editor for the 4D.
+
+These screenshots show version 4.1 with synthetic lights, panel IDs and addresses:
+
+![Live overview in dark mode](docs/images/portal-live-v41.png)
+![Immersive live preview](docs/images/portal-immersive-v41.png)
+![Select lights and map the hexagon panels](docs/images/portal-mapping-v41.png)
+![Desktop pairing and Hue setup](docs/images/portal-setup-v41.png)
 
 ## Daily operation
 
@@ -118,9 +132,9 @@ releases the stream; new frames resume it while the virtual device is on.
 The maintenance menu is `nanoleaf-hue`. Pairings and settings survive service restarts.
 Avoid other applications streaming to the same Hue Entertainment area.
 
-## Upgrade from version 3
+## Upgrade from version 3 or 4
 
-Take a full system backup or VM/container snapshot first. Download/extract version 4 and run:
+Take a full system backup or VM/container snapshot first. Download/extract version 4.1 and run:
 
 ```bash
 bash update.sh
@@ -129,7 +143,9 @@ bash update.sh
 The updater supports `/opt/nanoleaf-hue` installations created by the public
 installer. It makes a private backup in `/root/nanoleaf-hue-backups`, preserves
 accounts, identities, API tokens, Hue credentials and profiles, disables HomeKit,
-and replaces ARP capture with direct reception. Startup failure triggers rollback.
+and upgrades the portal. When upgrading from version 3, it also replaces ARP
+capture with direct reception. Version 4.0 mappings remain valid. Startup failure
+triggers rollback.
 Private prototype installations at `/opt/nanoleaf-probe` are not supported by it.
 
 Use Desktop to pair if necessary and register the virtual recipient in 4D Sync+.

@@ -203,7 +203,7 @@ def setup():
                 'identity': '02:' + ':'.join(f'{x:02x}' for x in secrets.token_bytes(5)),
                 'hue_area': '00000000-0000-0000-0000-000000000000'}
         save(data)
-    for unit in (VIRTUAL, SYNC, PANEL):
+    for unit in (VIRTUAL, SYNC, PANEL, 'nanoleaf-hue-maintenance', 'nanoleaf-hue-name'):
         shutil.copyfile(ROOT / 'systemd' / (unit + '.service'),
                         '/etc/systemd/system/' + unit + '.service')
     command('systemctl', 'daemon-reload')
@@ -212,9 +212,10 @@ def setup():
     asyncio.run(hue(data))
     from portal_install import provision
     provision(data)
-    command('systemctl', 'enable', '--now', SYNC, PANEL)
+    command('systemctl', 'enable', '--now', SYNC, PANEL, 'nanoleaf-hue-maintenance', 'nanoleaf-hue-name')
     print('\nInstallation complete. Turn on/off ' + data['name'] + ' in the web portal or Nanoleaf Desktop.')
-    print('Keep the virtual device selected in 4D Sync+ in Desktop and enable Start at boot for the LXC in Proxmox.')
+    print('Keep the virtual device selected in Desktop Sync+ and enable automatic startup of your Debian host.')
+    print('Short URL: http://'+data.get('portal_name','nanoleaf-hue.local'))
     print('Portal: http://' + data['ip'] + ':8080  -  create your username and password there.')
     print('Map panel colors, adjust brightness and save profiles in the portal. Maintenance menu: nanoleaf-hue')
 
@@ -256,13 +257,13 @@ def menu():
             command('systemctl', 'start', SYNC)
         elif choice == 'remove':
             if ask('Deactivate services? [y/N]', 'n').lower() == 'y':
-                command('systemctl', 'disable', '--now', PANEL, SYNC, VIRTUAL)
+                command('systemctl', 'disable', '--now', PANEL, SYNC, VIRTUAL, 'nanoleaf-hue-maintenance', 'nanoleaf-hue-name')
                 print('Services deactivated; configuration and pairings are preserved.')
 
 
 if __name__ == '__main__':
     if os.geteuid() != 0:
-        sys.exit('Run the menu as root inside the container.')
+        sys.exit('Run the menu as root on the Debian system.')
     os.umask(0o077)
     try:
         setup() if len(sys.argv) > 1 and sys.argv[1] == 'setup' else menu()

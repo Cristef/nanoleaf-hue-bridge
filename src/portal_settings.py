@@ -32,14 +32,18 @@ def tuning(value):
 
 
 def active(value):
-    if not isinstance(value, dict) or set(value) != {'bridge', 'area', 'mapping', 'brightness', 'tuning'}:
+    if not isinstance(value, dict) or (set(value) - {'channelSettings'}) != {'bridge', 'area', 'mapping', 'brightness', 'tuning'}:
         raise ValueError('Invalid stream settings')
     if not isinstance(value['area'], str):
         raise ValueError('Invalid area identifier')
     area = str(uuid.UUID(value['area']))
-    return {'bridge': private_ip(value['bridge']), 'area': area,
+    result = {'bridge': private_ip(value['bridge']), 'area': area,
             'mapping': validate_mapping(value['mapping']), 'brightness': brightness(value['brightness']),
             'tuning': tuning(value['tuning'])}
+    if 'channelSettings' in value:
+        from advanced_portal import channel_settings
+        result['channelSettings'] = channel_settings(value['channelSettings'])
+    return result
 
 
 def profile_name(value):

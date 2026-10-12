@@ -17,7 +17,10 @@ STATUS = Path('/run/nanoleaf-hue/status.json')
 def enabled():
     with urllib.request.urlopen("http://" + CONFIG["ip"] + ":16021/health", timeout=2) as response:
         data = json.load(response)
-        return data.get('on') is True
+        test = {}
+        try: test = json.loads(Path('/run/nanoleaf-hue/test-mode.json').read_text())
+        except (OSError,ValueError): pass
+        return data.get('on') is True or 0 < test.get('expires',0)-time.time() <= 60
 
 
 def stop_children(children):

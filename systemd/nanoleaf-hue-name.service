@@ -1,0 +1,15 @@
+[Unit]
+Description=Nanoleaf Hue portal local name
+Requires=avahi-daemon.service
+After=avahi-daemon.service network-online.target
+[Service]
+User=root
+ExecStart=/opt/nanoleaf-hue/venv/bin/python /opt/nanoleaf-hue/portal_name.py
+Restart=on-failure
+RestartSec=5
+CapabilityBoundingSet=
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+[Install]
+WantedBy=multi-user.target

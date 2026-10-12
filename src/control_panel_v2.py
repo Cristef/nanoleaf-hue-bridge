@@ -34,6 +34,14 @@ class Control:
         self.credentials = Path(os.environ['HUE_CREDENTIALS'])
         self.control_auth = Path(os.environ['PANEL_CONTROL_AUTH'])
         self.allowed_hosts = {'127.0.0.1:8080', 'localhost:8080', os.environ['PANEL_BIND'] + ':8080'}
+        local_name = os.environ.get('PANEL_LOCAL_NAME', '')
+        if local_name:
+            import re
+            if not re.fullmatch(r'[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.local', local_name):
+                raise ValueError('Invalid local portal name')
+            self.allowed_hosts.update({local_name, local_name + ':80', local_name + ':8080'})
+        if os.environ.get('PANEL_HTTP_PORT') == '80':
+            self.allowed_hosts.update({os.environ['PANEL_BIND'], os.environ['PANEL_BIND'] + ':80'})
         self.csrf = secrets.token_urlsafe(32)
         self.lock = threading.RLock()
         self.area = {'name': 'Hue area', 'channels': []}
@@ -119,7 +127,7 @@ class Control:
             return {'version': '2.0.0', 'csrf': self.csrf, 'mapping': mapping, 'revision': self.revision(mapping),
                     'brightness': brightness, 'brightnessRevision': self.revision(brightness),
                     'diagnostics': {'virtualReachable': bool(self.health_cache),
-                        'homeKitPaired': homekit.get('paired'), 'apiPaired': self.health_cache.get('pairing', {}).get('apiPaired'),
+                        'homeKitPaired': homekit.get('paired'), 'apiPaired': self.health_cache.get('pairing',{}).get('apiPaired'),
                         'frameAge': round(max(0, age), 1) if latest.get('lastFrameTime') else None,
                         'relayCounters': latest.get('counts', {}),
                         'huePhase': 'off' if self.health_cache.get('on') is False else (
@@ -155,6 +163,9 @@ class Control:
     def switch(self, value):
         if type(value) is not bool:
             raise ValueError('Invalid switch state')
+        if value is False:
+            from portal_settings import atomic_json
+            atomic_json(self.runtime/'test-mode.json',{'expires':0})
         auth = read_json(self.control_auth)
         if not auth or not auth.get('token'):
             raise ValueError('Virtual control unavailable')

@@ -33,7 +33,7 @@ button to hold. Complete pairing within two minutes. The wizard verifies that
 an external API client obtained a token. It preserves tokens on restart.
 
 You can finish pairing later: open the portal, create your login, go to
-**Settings & pairing**, and click **Start Nanoleaf pairing**. Each click opens
+**Setup**, and click **Open Desktop pairing (120 seconds)**. Each click opens
 another two-minute window. Only an authenticated portal user can request it.
 
 In Nanoleaf Desktop, include the virtual receiver in your 4D Sync+ configuration,
@@ -76,3 +76,7 @@ stream; new frames resume it if the virtual is on.
 Use `nanoleaf-hue` for pairing, status, diagnostics, changing area, restarting or
 deactivating services. Credentials stay on the Debian system and are excluded from
 settings exports. Do not expose the unencrypted LAN portal to the Internet.
+
+## Portal 4.1
+
+Use http://nanoleaf-hue.local/ or http://DEBIAN_IP:8080/. The Live, Mapping, Color, Profiles, Setup and System views replace the long single-page portal. See the README screenshots and instructions for themes, immersive preview, mapping suggestions and temporary tests. Settings exports include per-light response overrides but no credentials.

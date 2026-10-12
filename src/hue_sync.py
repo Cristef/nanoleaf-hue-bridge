@@ -12,8 +12,8 @@ import signal
 import socket
 import time
 
-from extcontrol_probe import decode_frame
 from config import CONFIG
+from extcontrol_probe import decode_frame
 from panel_mapping import channel_colors, MappingFile
 from brightness import BrightnessFile, scale
 from portal_settings import Store, TUNING
@@ -47,7 +47,7 @@ async def run(args):
                 if remaining <= 0:
                     raise TimeoutError('bridge button not pressed within pairing window')
                 try:
-                    creds = await asyncio.wait_for(api.pair('nanoleaf_hue#bridge'), remaining)
+                    creds = await asyncio.wait_for(api.pair('nanoleaf_sync#lxc110'), remaining)
                     break
                 except TimeoutError:
                     if time.monotonic() >= deadline:
@@ -96,6 +96,9 @@ async def run(args):
         for sig in (signal.SIGTERM, signal.SIGINT):
             loop.add_signal_handler(sig, stop.set)
         state = {}; count = 0; started = False; last_frame = 0; next_status = 0
+        test_active = False
+        from test_patterns import commands as test_commands
+        test_path = Path(os.environ.get("HUE_TEST", "/run/nanoleaf-hue/test-mode.json"))
         identify = {}
         identify_path = Path(os.environ.get('HUE_IDENTIFY', '/run/nanoleaf-hue/identify.json'))
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as receiver:
@@ -103,17 +106,23 @@ async def run(args):
             deadline = float('inf') if args.continuous else time.monotonic() + args.seconds
             print('Hue consumer ready; waiting for actual colors', flush=True)
             while not stop.is_set() and time.monotonic() < deadline:
+                try: test = json.loads(test_path.read_text())
+                except (OSError,ValueError): test = {}
+                testing = test_commands(test,ids,time.time(),area.id)
+                if test_active and testing is None:
+                    if started: await session.stop(); started=False
+                    state={};response=ColorResponse()
+                test_active = testing is not None
+                panels=[]
                 try:
-                    data, peer = await asyncio.wait_for(loop.sock_recvfrom(receiver, 65535), 0.5)
+                    data, peer = await asyncio.wait_for(loop.sock_recvfrom(receiver,65535),0.05 if test_active else 0.5)
+                    try: panels=decode_frame(data)
+                    except ValueError: pass
                 except asyncio.TimeoutError:
-                    if started and time.monotonic() - last_frame > 2:
-                        await session.stop(); started = False
-                        response = ColorResponse()
-                        publish('waiting', count)
-                    continue
-                try:
-                    panels = decode_frame(data)
-                except ValueError:
+                    pass
+                if not panels and not test_active:
+                    if started and time.monotonic()-last_frame>2:
+                        await session.stop();started=False;response=ColorResponse();publish('waiting',count)
                     continue
                 for panel in panels:
                     state[panel['panelId']] = panel
@@ -138,6 +147,8 @@ async def run(args):
                         identify = {}
                     next_mapping_check = time.monotonic() + 0.5
                 mapping_error = store.error if store else (mapping_file.error or brightness_file.error)
+                if testing is not None and not state:
+                    state[1]={'panelId':1,'rgb':[255,0,0]}
                 commands = []
                 for channel in ids:
                     selected = {str(channel): mapping[str(channel)]} if str(channel) in mapping else {}
@@ -146,7 +157,8 @@ async def run(args):
                     except ValueError:
                         commands.extend(channel_colors(list(state.values()), [channel]))
                         mapping_error = 'Selected panel unavailable; using the general average'
-                commands = response.process(commands, config['tuning'] if config else TUNING, brightness, time.monotonic())
+                if testing is not None: commands = testing
+                commands = response.process(commands, config['tuning'] if config else TUNING, brightness, time.monotonic(), config.get('channelSettings',{}) if config else None)
                 if (identify.get('area') == area.id and type(identify.get('expires')) in (int, float)
                         and 0 < identify['expires'] - time.time() <= 2):
                     white = {ch: (r,g,b) for ch,r,g,b in scale([(ch,65535,65535,65535) for ch in ids], brightness)}
@@ -154,7 +166,12 @@ async def run(args):
                                 for ch, r, g, b in commands]
                 if not started:
                     publish('connecting', count)
-                    await session.start(area.id, stop_others=False)
+                    try: await session.start(area.id, stop_others=False)
+                    except Exception as error:
+                        reason=str(error).lower()
+                        publish('busy' if any(word in reason for word in ('active','busy','in use','streaming')) else 'connection-error',count)
+                        await asyncio.sleep(1)
+                        continue
                     started = True
                 if stop.is_set():
                     break

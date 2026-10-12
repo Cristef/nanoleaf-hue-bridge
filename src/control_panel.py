@@ -35,6 +35,12 @@ class Handler(BaseHandler):
                                      'setupRequired': control.auth.needs_setup()})
         if self.path.startswith('/api/') and not self.authenticated():
             return self.respond(401, {'error': 'Sign in to continue.'})
+        if self.path in ('/shell.js', '/shell.css'):
+            name = self.path[1:]
+            mime = 'text/javascript; charset=utf-8' if name.endswith('.js') else 'text/css; charset=utf-8'
+            return self.respond(200, (Path(__file__).parent/'web'/name).read_bytes(), mime)
+        if self.path == '/advanced.js':
+            return self.respond(200, (Path(__file__).parent/'web'/'advanced.js').read_bytes(), 'text/javascript; charset=utf-8')
         if self.path == '/portal.js':
             return self.respond(200, (Path(__file__).parent/'web'/'portal.js').read_bytes(), 'text/javascript; charset=utf-8')
         if self.path == '/api/export':
@@ -85,6 +91,14 @@ class Handler(BaseHandler):
                        '/api/import': control.import_settings, '/api/identify': control.identify,
                        '/api/setup/hue': control.setup_hue,
                        '/api/setup/nanoleaf': control.setup_nanoleaf,
+                       '/api/advanced/channels': control.save_channels,
+                       '/api/advanced/mapping': control.automatic_mapping,
+                       '/api/advanced/test': control.test_colors,
+                       '/api/setup/discover': control.guided_discovery,
+                       '/api/setup/source': control.save_source,
+                       '/api/setup/desktop': control.desktop_pairing,
+                       '/api/updates/check': control.check_update,
+                       '/api/updates/action': control.maintenance_action,
                        '/api/refresh': lambda _: control.refresh(),
                        '/api/switch': lambda body: control.switch(body.get('on'))}
             if self.path not in actions:
@@ -108,7 +122,11 @@ def main():
     threading.Thread(target=control.refresh_directory, daemon=True).start()
     server = ThreadingHTTPServer((os.environ['PANEL_BIND'], 8080), Handler)
     server.control = control
-    print('Nanoleaf Hue Bridge portal 4.0.0 ready', flush=True)
+    if os.environ.get('PANEL_HTTP_PORT') == '80':
+        short_server = ThreadingHTTPServer((os.environ['PANEL_BIND'], 80), Handler)
+        short_server.control = control
+        threading.Thread(target=short_server.serve_forever, daemon=True).start()
+    print('Nanoleaf Hue Bridge portal 4.1.0 ready', flush=True)
     server.serve_forever()
 
 

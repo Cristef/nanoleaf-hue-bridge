@@ -10,7 +10,7 @@ import urllib.request
 
 SOURCE=Path(__file__).resolve().parent
 ROOT=Path('/opt/nanoleaf-hue')
-UNITS=('nanoleaf-hue-virtual','nanoleaf-hue-sync','nanoleaf-hue-panel')
+UNITS=('nanoleaf-hue-virtual','nanoleaf-hue-sync','nanoleaf-hue-panel','nanoleaf-hue-maintenance','nanoleaf-hue-name')
 
 def run(*args):
     subprocess.run(args,check=True)
@@ -32,7 +32,7 @@ def main():
     print('Private rollback backup:',backup,flush=True)
     try:
         run('systemctl','stop','nanoleaf-hue-sync','nanoleaf-hue-virtual')
-        subprocess.run(['systemctl','stop','nanoleaf-hue-panel'],check=False,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+        subprocess.run(['systemctl','stop','nanoleaf-hue-panel','nanoleaf-hue-maintenance','nanoleaf-hue-name'],check=False,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
         shutil.copytree(SOURCE/'src',ROOT,dirs_exist_ok=True)
         shutil.copytree(SOURCE/'systemd',ROOT/'systemd',dirs_exist_ok=True)
         sys.path.insert(0,str(ROOT))
@@ -63,7 +63,9 @@ def main():
         for unit in UNITS:
             saved=backup/(unit+'.service');target=Path('/etc/systemd/system')/(unit+'.service')
             if saved.exists(): shutil.copy2(saved,target)
-            elif target.exists(): target.unlink()
+            elif target.exists():
+                subprocess.run(['systemctl','disable',unit],check=False,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+                target.unlink()
         for index,path in enumerate(paths):
             saved=backup/('state-'+str(index))
             if saved.exists(): shutil.copytree(saved,path,dirs_exist_ok=True)

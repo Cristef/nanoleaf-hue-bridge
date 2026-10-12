@@ -10,6 +10,7 @@ PATH = Path(os.environ.get('NH_CONFIG', '/etc/nanoleaf-hue/config.json'))
 
 
 def validate(data):
+    if not re.fullmatch(r'[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.local',data.get('portal_name','nanoleaf-hue.local')):raise ValueError('Invalid local portal name')
     direct = data.get('mode') == 'direct'
     addresses = ('ip', 'source_ip', 'hue_ip') if direct else ('ip', 'source_ip', 'target_ip', 'hue_ip')
     for key in addresses:

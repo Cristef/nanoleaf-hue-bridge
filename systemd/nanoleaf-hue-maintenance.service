@@ -1,0 +1,18 @@
+[Unit]
+Description=Nanoleaf Hue local maintenance worker
+After=nanoleaf-hue-sync.service
+[Service]
+User=root
+UMask=0077
+ExecStart=/opt/nanoleaf-hue/venv/bin/python /opt/nanoleaf-hue/maintenance_worker.py
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+ProtectSystem=strict
+ReadWritePaths=/opt/nanoleaf-hue /var/lib/nanoleaf-hue-sync /run/nanoleaf-hue /etc/nanoleaf-hue
+ProtectHome=yes
+PrivateTmp=yes
+RestrictAddressFamilies=AF_INET AF_UNIX
+[Install]
+WantedBy=multi-user.target

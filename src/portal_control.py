@@ -15,7 +15,9 @@ from panel_mapping import validate_mapping
 from portal_auth import Auth
 
 
-class Control(BaseControl):
+from advanced_portal import AdvancedControl
+
+class Control(AdvancedControl, BaseControl):
     def __init__(self):
         super().__init__()
         self.store = Store(os.environ.get('PANEL_CONFIG', str(self.mapping_path.with_name('portal-settings.json'))))
@@ -26,7 +28,7 @@ class Control(BaseControl):
 
     def allowed_bridge(self, value):
         value = private_ip(value)
-        network = ipaddress.IPv4Network(os.environ.get('PANEL_NETWORK', os.environ['PANEL_BIND'] + '/24'), strict=False)
+        network = ipaddress.IPv4Network(os.environ.get('PANEL_NETWORK',os.environ['PANEL_BIND'] + '/24'), strict=False)
         if ipaddress.IPv4Address(value) not in network or value in (str(network.network_address), str(network.broadcast_address), os.environ['PANEL_BIND']):
             raise ValueError('Use the Hue Bridge IP on this LAN')
         return value
@@ -45,7 +47,7 @@ class Control(BaseControl):
         try:
             areas = await asyncio.wait_for(api.get_entertainment_areas(), 10)
             result = [{'id': a.id, 'name': a.name, 'channels': [
-                {'id': c.channel_id, 'name': c.name} for c in a.channels]} for a in areas]
+                {'id': c.channel_id, 'name': c.name, 'position': dict(zip(('x','y','z'),c.position))} for c in a.channels]} for a in areas]
             with self.lock:
                 self.catalog[bridge] = result
             return result
@@ -83,12 +85,12 @@ class Control(BaseControl):
             result['panels'] = result.get('panels') or []
             if result['phase'] == 'waiting-for-colors':
                 result['diagnostics']['huePhase'] = 'waiting'
-            result.update({'version': '4.0.0', 'configRevision': revision(config), 'activeSettings': stream,
+            result.update({'version': '4.1.0', 'configRevision': revision(config), 'activeSettings': stream,
                            'tuningRevision': revision(stream['tuning']),
                            'profiles': [{'name': name, 'bridge': value['bridge'], 'area': value['area']}
                                         for name, value in config['profiles'].items()],
                            'areas': areas, 'bridge': stream['bridge'], 'setupJob': copy.deepcopy(self.job)})
-            return result
+            return self.advanced_state(result)
 
     def channels_for(self, stream):
         self.allowed_bridge(stream['bridge'])
@@ -110,6 +112,7 @@ class Control(BaseControl):
             panels.update(group)
         validate_mapping(stream['mapping'], channels, panels)
         validate_brightness(stream['brightness'], channels)
+        if set(stream.get('channelSettings',{})) - {str(c) for c in channels}: raise ValueError('Unknown channel settings')
         return stream
 
     def change(self, payload, transform):
@@ -173,6 +176,7 @@ class Control(BaseControl):
             value = copy.deepcopy(config['active'])
             value.update(bridge=bridge, area=area, mapping={},
                          brightness={'global': value['brightness']['global'], 'channels': {}})
+            value.pop('channelSettings',None)
             config['active'] = self.validate_available(value)
         return self.change(payload, modify)
 
@@ -207,6 +211,7 @@ class Control(BaseControl):
         request = urllib.request.Request(self.virtual+'/api/v1/'+auth['token']+'/pairing', data=b'{}', headers={'Content-Type':'application/json'}, method='POST')
         with urllib.request.urlopen(request, timeout=3) as response:
             return json.load(response)
+
 
     def setup_hue(self, payload):
         bridge = self.allowed_bridge(payload.get('bridge'))
