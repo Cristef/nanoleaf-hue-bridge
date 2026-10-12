@@ -177,30 +177,116 @@ out. This is an HTTP portal for a trusted LAN: login does not encrypt traffic.
 Do not expose it directly to the Internet. Password recovery currently requires
 container administrator access; password changes are not available in this release.
 
-- **Lights:** select a Hue light, choose its live Shapes panels and save mappings.
-  A group supplies its average color. **General average** uses all received panels.
-  **Identify light** briefly sends white to one channel while streaming is active.
-- **Brightness:** global and individual light sliders multiply. Global 50% and
-  individual 50% give 25% RGB intensity. Zero sends black without disabling Sync+.
-- **Profiles:** save and apply complete setups, including Bridge, area, groups,
-  brightness and color response. Replacing an existing profile requires an
-  explicit checkbox. Deletion asks for confirmation.
-- **Color response:** transition smoothing (0–2000 ms), saturation (0–200%) and
-  black threshold (0–255). Defaults preserve input colors. Controls apply to the
-  stream as a whole; brightness also has individual light controls.
-- **Settings & pairing:** refresh Hue areas and lights, connect/pair a Hue Bridge,
-  choose its existing Entertainment area, or display the virtual HomeKit code.
-  Changing area clears groups and individual brightness for the new channels;
-  save a profile first. Source IP/MAC configuration remains in the terminal wizard.
-- **Settings backup:** export configuration and profiles without credentials.
-  Import validates the file and shows a review before replacing settings. It
-  does not back up HomeKit pairing keys or Hue credentials; use a container
-  snapshot for full recovery.
-- **Diagnostics:** virtual-device reachability, HomeKit pairing, incoming-frame
-  age, stream state, frame counters and the last RGB sent to each Hue channel.
+### Illustrated quick start
 
-Draft mappings and color settings are previews until saved. Save or discard
-pending drafts before applying profiles, switching areas or importing settings.
+These screenshots show the actual portal with **demonstration data**: example
+lights, panel IDs, colors, counters and a fictitious Hue Bridge address. Your
+lights and values will differ. No real credentials or HomeKit codes are shown.
+Native file-picker labels follow your browser/operating-system language.
+
+#### 1. Create your login
+
+Open `http://<container-ip>:8080`, choose a username, enter a password of at least
+**8 characters**, repeat it in **Confirm password**, then click **Create login**.
+There is no installation access key or default password. Later visits display
+**Username** and **Password** instead.
+
+![First visit: create a username and password](docs/images/portal-first-login.jpg)
+
+#### 2. Assign colors and set brightness
+
+Start Screen Mirror on the 4D, keep the physical Shapes selected in Sync+, and
+turn on the virtual accessory. The portal's **Synchronization** switch controls
+the same on/off state as the Nanoleaf app. Wait for **Streaming** and incoming
+panel colors.
+
+1. In **Your Hue lights**, click **Select panels** for the light to configure.
+2. Click one or more colored tiles. Check marks and panel chips show the selected
+   group. The light receives the group's average color; a single panel supplies
+   its own color. The grid identifies panels, not their physical positions.
+3. Repeat for other lights and click **Save mappings**. Use **General average**
+   to use all received panels for one light, or **Reset to average** to clear all
+   groups in the draft, then save.
+4. Set each **Light brightness** and **Global brightness**, then click **Save
+   brightness**. These factors multiply: 80% global and 75% individual gives 60%
+   RGB intensity. Zero sends black while synchronization stays enabled.
+5. While streaming, **Identify light** briefly sends white to that light at its
+   saved brightness so you can locate it.
+
+Changes are previews until saved. **Discard unsaved changes** restores the saved
+values. In the example, Floor lamp uses panels 1–3, TV lightstrip uses 4–6, and
+Table lamp uses 7–9.
+
+![Live panel groups and individual/global brightness controls](docs/images/portal-lights.jpg)
+
+#### 3. Save and recall profiles
+
+Open **Profiles**, enter a name such as Cinema or Gaming in **Profile name**, and
+click **Save current setup**. A profile contains the Bridge, Entertainment area,
+panel groups, brightness and color response. To overwrite a saved profile, use
+its name and explicitly check **Replace existing profile**.
+
+Choose an entry in **Saved profile** and click **Apply profile** to restore it.
+**Delete profile** asks for confirmation and does not change the active stream
+settings. Save or discard pending drafts before using these actions.
+
+![Saving and applying complete profiles](docs/images/portal-profiles.jpg)
+
+#### 4. Adjust color response
+
+Open **Color response** and adjust the sliders, then click **Save color response**.
+These settings apply to the whole stream.
+
+| Control | Effect | Neutral/default value |
+| --- | --- | --- |
+| Transition smoothing | Softens transitions over time; adjustable from 0 to 2000 ms | 0 ms |
+| Saturation | 0% gives grayscale; above 100% increases saturation, up to 200% | 100% |
+| Black threshold | Sends black immediately when the highest input RGB component is below the threshold (0–255) | 0, disabled |
+
+The screenshot shows example settings, not required or recommended defaults.
+Swatches preview target colors; **Diagnostics** shows the actual smoothed output.
+
+![Smoothing, saturation and black threshold controls](docs/images/portal-color-response.jpg)
+
+#### 5. Select an area or connect a Bridge
+
+Open **Settings & pairing**. After changing your Entertainment area's lights in
+the Hue app, click **Refresh lights**. Select another existing area and click
+**Use selected area** when needed. Changing area clears its panel groups and
+individual brightness; save a profile first to preserve the previous setup.
+
+For another Hue Bridge on the container LAN, enter its IP and click **Connect /
+pair Hue Bridge**. Follow the status message and press the physical Bridge
+button if requested. When connected, choose an area and apply it. Create areas
+in the Hue app; this portal selects them but does not create them.
+
+**Show HomeKit pairing code** displays the virtual accessory's code for adding
+it in the Nanoleaf app. Existing pairing is preserved. Source IP/MAC settings
+remain in the terminal wizard.
+
+![Entertainment area selection and guided connection](docs/images/portal-settings.jpg)
+
+#### 6. Back up or import settings
+
+Click **Export settings** to download active settings and profiles before making
+large changes. To restore them, choose a JSON file with **Import settings**, read
+the validation summary, then click **Apply reviewed import**. Import replaces
+current settings and profiles; save or discard drafts first.
+
+Exports exclude portal passwords, Hue credentials and HomeKit pairing keys.
+They are configuration backups, not complete container backups. Keep a Proxmox
+snapshot for full recovery.
+
+![Settings export and reviewed import controls](docs/images/portal-backup.jpg)
+
+#### 7. Check synchronization
+
+Read **Diagnostics** if the lights are not following the screen. Check virtual
+device reachability, HomeKit pairing, incoming-frame age and Hue stream state.
+Frame counters reset when the stream process restarts. The RGB values show what
+this service sent, not a measurement of the physical lamps.
+
+![Stream state, pairing and frame diagnostics](docs/images/portal-diagnostics.jpg)
 
 ## Upgrade an existing public installation
 
