@@ -34,10 +34,10 @@ class WizardTests(unittest.TestCase):
         with patch('wizard.ask', side_effect=['bad','192.0.2.10']):
             self.assertEqual(wizard.address('IP'), '192.0.2.10')
 
-    def test_existing_homekit_pairing_does_not_generate_new_code(self):
-        with patch('wizard.wait_virtual'), patch('wizard.health', return_value={'homeKit':{'paired':True}}), \
+    def test_existing_api_pairing_does_not_open_new_window(self):
+        with patch('wizard.wait_virtual'), patch('wizard.health', return_value={'pairing':{'apiPaired':True}}), \
                 patch('wizard.ask') as ask:
-            wizard.homekit({'name':'Test'})
+            wizard.desktop_pairing({'name':'Test'})
             ask.assert_not_called()
 
     def test_hue_pairing_area_selection_and_credentials_reuse(self):

@@ -1,13 +1,14 @@
 # Release checklist
 
-Publish only this directory as the repository root; exclude local prototype files,
-SSH credentials, container state, private snapshots and packet captures.
+Version 4.0.0 is an experimental prerelease. Publish only this directory.
 
-- Run all Python tests and Bash syntax checks.
-- Check installer/update provisioning and preservation of identities and accounts.
-- Inspect staged files for credentials and deployment-specific addresses.
-- Keep PolyForm Noncommercial license and third-party notices unchanged.
-- Confirm GitHub Actions passes before publishing the tagged release.
-- Record hardware testing limits in README and release notes.
-- Test a fresh Debian 12 installation with physical pairing separately; run only
-  one relay for a given 4D/Shapes pair at a time.
+- Run Linux Python tests, Python/JavaScript syntax checks and Bash syntax checks.
+- Verify Desktop pairing window authorization, expiration and persistent tokens.
+- Verify malformed/source-mismatched UDP rejection and multi-channel mapping.
+- Verify installer/updater provisioning and rollback retain private identities/accounts.
+- Inspect tracked files and archive for credentials and deployment-specific values.
+- Keep the noncommercial license and all third-party attribution files.
+- Confirm GitHub Actions passes for the published commit.
+- Record limits: development hardware used two Hue lights; ten-channel mapping is
+  synthetic; complete fresh Debian Desktop-only onboarding still needs hardware testing.
+- Never run a second production instance against the same configuration during tests.

@@ -119,7 +119,7 @@ class Control:
             return {'version': '2.0.0', 'csrf': self.csrf, 'mapping': mapping, 'revision': self.revision(mapping),
                     'brightness': brightness, 'brightnessRevision': self.revision(brightness),
                     'diagnostics': {'virtualReachable': bool(self.health_cache),
-                        'homeKitPaired': homekit.get('paired'),
+                        'homeKitPaired': homekit.get('paired'), 'apiPaired': self.health_cache.get('pairing', {}).get('apiPaired'),
                         'frameAge': round(max(0, age), 1) if latest.get('lastFrameTime') else None,
                         'relayCounters': latest.get('counts', {}),
                         'huePhase': 'off' if self.health_cache.get('on') is False else (

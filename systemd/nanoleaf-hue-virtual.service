@@ -1,5 +1,5 @@
 [Unit]
-Description=Nanoleaf Hue virtual HomeKit accessory
+Description=Nanoleaf Hue direct Sync+ receiver
 Wants=network-online.target avahi-daemon.service
 After=network-online.target avahi-daemon.service
 
@@ -9,7 +9,7 @@ Group=nanoleaf-hue
 StateDirectory=nanoleaf-hue-virtual
 StateDirectoryMode=0700
 UMask=0077
-ExecStart=/opt/nanoleaf-hue/venv/bin/python /opt/nanoleaf-hue/nanoleaf_probe.py --bind-ipv6 :: --homekit --ssdp --state /var/lib/nanoleaf-hue-virtual/state.json
+ExecStart=/opt/nanoleaf-hue/venv/bin/python /opt/nanoleaf-hue/nanoleaf_probe.py --bind-ipv6 :: --ssdp --state /var/lib/nanoleaf-hue-virtual/state.json
 Restart=on-failure
 RestartSec=5
 NoNewPrivileges=yes

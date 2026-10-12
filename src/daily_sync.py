@@ -21,7 +21,7 @@ def enabled():
 
 
 def stop_children(children):
-    # Restore native forwarding first; then stop Hue and release its area.
+    # Stop telemetry and Hue, releasing the Entertainment area.
     for child in reversed(children):
         if child.poll() is None:
             child.terminate()
@@ -30,8 +30,7 @@ def stop_children(children):
             child.wait(timeout=35)
         except subprocess.TimeoutExpired:
             child.kill(); child.wait(timeout=5)
-    subprocess.run([sys.executable, str(FOLDER / 'syncplus_relay.py'), '--restore'],
-                   timeout=5, check=True)
+
 
 
 def write_status(phase, error=None):
@@ -68,7 +67,7 @@ def main():
                 # Socket startup; repeated On checks below gate the whole pipeline.
                 time.sleep(2)
                 if hue.poll() is None:
-                    children.append(subprocess.Popen([sys.executable, str(FOLDER / 'syncplus_relay.py'), '--continuous']))
+                    children.append(subprocess.Popen([sys.executable, str(FOLDER / 'direct_stats.py')]))
             current = 'waiting-for-colors' if children else ('retrying' if on else 'off')
             if children:
                 try:

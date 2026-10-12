@@ -1,6 +1,10 @@
 # License review
 
-Review date: 2026-10-11.
+Dependency review date: 2026-10-11.
+
+Version 4.0.0 review: 2026-10-12. Direct receiver and installer changes are original
+project code. The pinned requirements and bundled third-party notices are unchanged.
+Legacy HomeKit regression code remains; public services do not enable HomeKit.
 
 ## Project license and scope
 

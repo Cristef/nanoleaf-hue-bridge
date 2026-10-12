@@ -121,10 +121,21 @@ class PortalTests(unittest.TestCase):
             def post(route, payload, cookie='', origin=base):
                 return urllib.request.Request(base+route,data=json.dumps(payload).encode(),
                     headers={'Content-Type':'application/json','Origin':origin,'X-Control-Token':self.control.csrf,'Cookie':cookie})
+            with self.assertRaises(urllib.error.HTTPError) as error:
+                urllib.request.urlopen(post('/api/setup/nanoleaf',{}),timeout=2)
+            self.assertEqual(error.exception.code,401)
             with urllib.request.urlopen(post('/api/login',{'username':'owner','password':'test-password'}),timeout=10) as response:
                 cookie=response.headers['Set-Cookie'].split(';')[0]
                 self.assertIn('HttpOnly',response.headers['Set-Cookie'])
                 self.assertIn('SameSite=Strict',response.headers['Set-Cookie'])
+            with patch.object(self.control,'setup_nanoleaf',return_value={'seconds':120,'method':'desktop-button'}) as pair:
+                with self.assertRaises(urllib.error.HTTPError) as error:
+                    urllib.request.urlopen(post('/api/setup/nanoleaf',{},cookie,'http://foreign.example'),timeout=2)
+                self.assertEqual(error.exception.code,403)
+                pair.assert_not_called()
+                with urllib.request.urlopen(post('/api/setup/nanoleaf',{},cookie),timeout=2) as response:
+                    self.assertEqual(json.load(response)['seconds'],120)
+                pair.assert_called_once()
             with urllib.request.urlopen(urllib.request.Request(base+'/api/export',headers={'Cookie':cookie}),timeout=2) as response:
                 exported=json.load(response)
             self.assertEqual(set(exported),{'schema','active','profiles'})

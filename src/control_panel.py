@@ -84,7 +84,7 @@ class Handler(BaseHandler):
                        '/api/area': control.select_area, '/api/import/preview': control.import_preview,
                        '/api/import': control.import_settings, '/api/identify': control.identify,
                        '/api/setup/hue': control.setup_hue,
-                       '/api/setup/code': lambda _: control.setup_code(),
+                       '/api/setup/nanoleaf': control.setup_nanoleaf,
                        '/api/refresh': lambda _: control.refresh(),
                        '/api/switch': lambda body: control.switch(body.get('on'))}
             if self.path not in actions:
@@ -108,7 +108,7 @@ def main():
     threading.Thread(target=control.refresh_directory, daemon=True).start()
     server = ThreadingHTTPServer((os.environ['PANEL_BIND'], 8080), Handler)
     server.control = control
-    print('Nanoleaf Hue Bridge portal 3.1.1 ready', flush=True)
+    print('Nanoleaf Hue Bridge portal 4.0.0 ready', flush=True)
     server.serve_forever()
 
 

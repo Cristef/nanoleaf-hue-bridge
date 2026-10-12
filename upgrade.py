@@ -38,7 +38,10 @@ def main():
         sys.path.insert(0,str(ROOT))
         from config import validate
         from portal_install import provision
-        data=validate(json.loads(Path('/etc/nanoleaf-hue/config.json').read_text()))
+        data=json.loads(Path('/etc/nanoleaf-hue/config.json').read_text())
+        data['mode']='direct'
+        validate(data)
+        Path('/etc/nanoleaf-hue/config.json').write_text(json.dumps(data,indent=2)+'\n')
         provision(data)
         for unit in UNITS: shutil.copy2(SOURCE/'systemd'/(unit+'.service'),Path('/etc/systemd/system')/(unit+'.service'))
         run('systemctl','daemon-reload')
@@ -51,8 +54,9 @@ def main():
             except OSError:
                 if time.monotonic()>deadline:raise RuntimeError('Portal startup failed.')
                 time.sleep(1)
+        run('systemctl','is-active','--quiet',*UNITS)
         print('Update complete. Portal: http://'+data['ip']+':8080')
-        print('Create your login on first visit. Existing accounts and pairings are preserved.')
+        print('Existing accounts and API tokens are preserved. HomeKit is disabled. Pair/configure the receiver in Nanoleaf Desktop on the same LAN; old physical panel mappings may need reassignment.')
     except Exception:
         subprocess.run(['systemctl','stop',*UNITS],check=False)
         shutil.copytree(backup/'code',ROOT,dirs_exist_ok=True)

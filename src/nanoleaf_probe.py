@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Experimental Shapes API and optional HomeKit probe. Does not implement Sync+."""
+"""Experimental virtual Shapes API and direct Sync+ receiver."""
 import argparse
 import copy
 import ipaddress
@@ -33,7 +33,7 @@ def device_info():
         "name": NAME, "serialNo": DEVICE_ID.replace(":", ""), "manufacturer": "Nanoleaf",
         "model": "NL42", "firmwareVersion": FIRMWARE, "hardwareVersion": "1.0",
         "state": {
-            "on": {"value": False},
+            "on": {"value": True},
             "brightness": {"value": 50, "min": 0, "max": 100},
             "hue": {"value": 0, "min": 0, "max": 360},
             "sat": {"value": 100, "min": 0, "max": 100},
@@ -55,6 +55,8 @@ class Device:
         self.state_file = Path(state_file)
         self.lock = threading.RLock()
         self.tokens = set()
+        self.bind_address = None
+        self.direct_receiver = None
         self.info = device_info()
         self.pair_until = 0
         self.homekit = None
@@ -79,6 +81,8 @@ class Device:
         self.tokens.add(control_token)
         self.save()
 
+        self.control_token = control_token
+
     def save(self):
         self.state_file.parent.mkdir(parents=True, exist_ok=True)
         temporary = self.state_file.with_suffix(".tmp")
@@ -102,7 +106,7 @@ class Device:
         if parts == ["health"] and method == "GET":
             return 200, {"status": "ok", "name": NAME, "model": "NL42",
                          "on": self.info["state"]["on"]["value"],
-                         "experimental": True, "syncPlus": "not implemented",
+                         "experimental": True, "pairing": {"open": time.monotonic() < self.pair_until, "secondsRemaining": max(0, int(self.pair_until-time.monotonic())), "apiPaired": bool(self.tokens - {self.control_token})}, "syncPlus": self.direct_receiver.status() if self.direct_receiver else "not implemented",
                          "homeKit": self.homekit.status() if self.homekit else "disabled",
                          "ssdp": self.ssdp.status() if self.ssdp else "disabled"}
         if parts[:2] != ["api", "v1"] or len(parts) < 3:
@@ -121,11 +125,18 @@ class Device:
         if token not in self.tokens:
             return 401, {"error": "invalid token"}
         tail = parts[3:]
+        if method == "POST" and tail == ["pairing"]:
+            if token != self.control_token:
+                return 403, {"error": "Internal portal authorization required"}
+            self.open_pairing(120)
+            return 200, {"seconds": 120, "method": "desktop-button"}
         if method == "DELETE" and not tail:
             self.tokens.remove(token)
             self.save()
             return 204, None
         if method == "GET":
+            if tail == ["firmwareUpgrade"]:
+                return 200, {"firmwareAvailability": False, "newFirmwareVersion": None}
             result = self.info
             for part in tail:
                 if not isinstance(result, dict) or part not in result:
@@ -135,6 +146,49 @@ class Device:
             return 200, copy.deepcopy(result)
         if method == "PUT" and tail == ["state"]:
             return self.update_state(body)
+        if method == "PUT" and tail == ["effects"]:
+            write = body.get("write") if isinstance(body, dict) else None
+            command = write.get("command") if isinstance(write, dict) else None
+            if isinstance(command, str):
+                label = command if command in {
+                    "getDeviceId", "getLocalIpAddress", "getDeviceAuthToken",
+                    "display", "request", "requestAll", "requestPlugins",
+                    "getOrchestratorScreenConfig",
+                    "getTouchKillSwitch", "requestTouchConfig", "requestBrightnessSensorConfig",
+                } else "unsupported"
+                LOG.info("Receiver command: %s", label)
+            if command == "getDeviceId":
+                return 200, {"deviceId": DEVICE_ID}
+            if command == "getLocalIpAddress" and self.bind_address:
+                return 200, {"localIpAddress": self.bind_address}
+            if command == "getDeviceAuthToken":
+                # Return only the already authenticated caller's own token.
+                return 200, {"authToken": token}
+            if command == "requestAll":
+                # No synthetic vendor animations: this receiver has no stored scenes.
+                return 200, {"animations": []}
+            if command == "requestPlugins":
+                return 200, {"plugins": []}
+            if command == "getTouchKillSwitch":
+                return 200, {"touchKillSwitchOn": True}
+            if command == "requestTouchConfig":
+                return 200, {"touchConfig": {
+                    "supportedFeatures": {"systemGestures": [], "systemActions": []},
+                    "defaultSystemConfig": {"gestureActions": []},
+                    "userSystemConfig": {"enabled": False, "gestureActions": [], "subscribers": []},
+                    "userPanelConfigs": [],
+                }}
+            if command == "requestBrightnessSensorConfig":
+                return 200, {"brightnessSensorConfig": {
+                    "enabled": False, "brightnessSensorMode": 0,
+                    "userMaxBrightness": 100, "userMinBrightness": 0,
+                    "isCalibrated": False, "isCalibrating": False,
+                }}
+            if (command == "display" and write.get("animType") == "extControl"
+                    and write.get("extControlVersion") == "v2" and self.direct_receiver):
+                self.info["effects"]["select"] = "*ExtControl*"
+                return 200, {"streamControlIpAddr": self.bind_address,
+                             "streamControlPort": 60222, "streamControlProtocol": "udp"}
         # Unknown operations intentionally fail, so missing protocol is observable.
         return 501, {"error": "operation not implemented in discovery probe"}
 
@@ -227,10 +281,33 @@ def main():
     parser.add_argument("--homekit-port", type=int, default=6517)
     parser.add_argument("--bind-ipv6", help="Also serve the IPv6 address advertised by Avahi; use :: in an LXC")
     parser.add_argument("--ssdp", action="store_true")
+    parser.add_argument("--direct-sync-source", default=CONFIG["source_ip"], help="Enable experimental UDP receiver for this IPv4 source only")
+    parser.add_argument("--direct-sync-forward", action="store_true", default=True, help="Forward validated direct frames to the local Hue consumer")
+    parser.add_argument("--virtual-layout", help="JSON virtual layout, applied without resetting device identity")
     args = parser.parse_args()
     ipaddress.IPv4Address(args.bind)
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     device = Device(args.state)
+    device.bind_address = args.bind
+    if not args.virtual_layout:
+        from virtual_layout import default_layout
+        device.info['panelLayout']['layout'] = default_layout()
+        device.save()
+    if args.virtual_layout:
+        from virtual_layout import validate_layout
+        layout = validate_layout(json.loads(Path(args.virtual_layout).read_text()))
+        device.info['panelLayout']['layout'] = layout
+        device.save()
+    if args.direct_sync_forward and not args.direct_sync_source:
+        raise ValueError('Direct forwarding requires a source address')
+    if args.direct_sync_source:
+        ipaddress.IPv4Address(args.direct_sync_source)
+        from direct_sync_receiver import DirectReceiver
+        device.direct_receiver = DirectReceiver(args.bind, args.direct_sync_source,
+            forward=args.direct_sync_forward,
+            enabled=lambda: device.info['state']['on']['value'] is True,
+            panel_ids=[p['panelId'] for p in device.info['panelLayout']['layout']['positionData']])
+        device.direct_receiver.start()
     server = ThreadingHTTPServer((args.bind, args.port), Handler)
     server.device = device
     servers = [server]
@@ -268,7 +345,8 @@ def main():
             device.homekit = HomeKitRuntime(device, args.bind, args.homekit_port,
                                            Path(args.state).parent)
             device.homekit.start()
-        LOG.info("Experimental API listening on %s:%s; Sync+ not implemented", args.bind, args.port)
+        LOG.info("Experimental API listening on %s:%s; direct Sync+ receiver %s", args.bind, args.port,
+                 "enabled" if device.direct_receiver else "disabled")
         if args.bind_ipv6:
             LOG.info("Experimental API also listening on [%s]:%s", args.bind_ipv6, args.port)
         while not stop.wait(1):
@@ -278,7 +356,11 @@ def main():
                 raise RuntimeError("HomeKit thread failed") from device.homekit.error
             if device.ssdp and device.ssdp.error:
                 raise RuntimeError("SSDP thread failed") from device.ssdp.error
+            if device.direct_receiver and not device.direct_receiver.thread.is_alive():
+                raise RuntimeError("Direct Sync+ receiver stopped unexpectedly")
     finally:
+        if device.direct_receiver:
+            device.direct_receiver.stop()
         if device.ssdp:
             device.ssdp.stop()
         if device.homekit:

@@ -20,7 +20,6 @@ def provision(data):
               'PANEL_RUNTIME':'/run/nanoleaf-hue', 'PANEL_VIRTUAL_URL':'http://'+data['ip']+':16021',
               'PANEL_HUE_IP':data['hue_ip'], 'PANEL_HUE_AREA':data['hue_area'],
               'PANEL_CONTROL_AUTH':'/var/lib/nanoleaf-hue-virtual/web-control-auth.json',
-              'PANEL_HOMEKIT_SETUP':'/var/lib/nanoleaf-hue-virtual/homekit-setup.json',
               'HUE_CREDENTIALS':str(STATE/'hue-auth.json')}
     ENV.parent.mkdir(parents=True,exist_ok=True)
     temporary=ENV.with_suffix('.tmp')

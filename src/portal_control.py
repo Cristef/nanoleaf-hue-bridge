@@ -23,7 +23,6 @@ class Control(BaseControl):
         self.catalog = {}
         self.job = {'phase': 'idle'}
         self.job_lock = threading.Lock()
-        self.homekit_path = Path(os.environ.get('PANEL_HOMEKIT_SETUP', '/var/lib/nanoleaf-hue-virtual/homekit-setup.json'))
 
     def allowed_bridge(self, value):
         value = private_ip(value)
@@ -84,7 +83,7 @@ class Control(BaseControl):
             result['panels'] = result.get('panels') or []
             if result['phase'] == 'waiting-for-colors':
                 result['diagnostics']['huePhase'] = 'waiting'
-            result.update({'version': '3.1.1', 'configRevision': revision(config), 'activeSettings': stream,
+            result.update({'version': '4.0.0', 'configRevision': revision(config), 'activeSettings': stream,
                            'tuningRevision': revision(stream['tuning']),
                            'profiles': [{'name': name, 'bridge': value['bridge'], 'area': value['area']}
                                         for name, value in config['profiles'].items()],
@@ -200,11 +199,14 @@ class Control(BaseControl):
         atomic_json(self.runtime/'identify.json', {'channel': channel, 'expires': time.time()+2, 'area': state['activeSettings']['area']})
         return {'status': 'identifying'}
 
-    def setup_code(self):
-        setup = read_json(self.homekit_path)
-        if not setup or not isinstance(setup.get('pincode'), str):
-            raise ValueError('HomeKit setup code unavailable')
-        return {'code': setup['pincode']}
+    def setup_nanoleaf(self, payload):
+        auth = read_json(self.control_auth)
+        if not auth or not auth.get('token'):
+            raise ValueError('Virtual pairing control unavailable')
+        import urllib.request
+        request = urllib.request.Request(self.virtual+'/api/v1/'+auth['token']+'/pairing', data=b'{}', headers={'Content-Type':'application/json'}, method='POST')
+        with urllib.request.urlopen(request, timeout=3) as response:
+            return json.load(response)
 
     def setup_hue(self, payload):
         bridge = self.allowed_bridge(payload.get('bridge'))

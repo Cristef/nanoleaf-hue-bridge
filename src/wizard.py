@@ -119,29 +119,32 @@ def health(data):
 def wait_virtual(data):
     for _ in range(30):
         try:
-            result = health(data)
-            if isinstance(result.get('homeKit'), dict) and result['homeKit'].get('running'):
-                return
-        except (OSError, ValueError):
-            pass
+            if health(data).get('status') == 'ok': return
+        except (OSError, ValueError): pass
         time.sleep(1)
-    raise RuntimeError('The virtual device did not start. Select Diagnostics in the menu to inspect errors.')
+    raise RuntimeError('Virtual receiver did not start. Inspect Diagnostics.')
 
 
-def homekit(data):
+def desktop_pairing(data, force=False):
     wait_virtual(data)
-    if health(data)['homeKit']['paired']:
-        print('HomeKit is already paired; its identity and code are preserved.'); return
+    if not force and health(data).get('pairing', {}).get('apiPaired'):
+        print('An API client is already paired; existing tokens are preserved.')
+        return
     while True:
-        code = json.loads(SETUP.read_text())['pincode']
-        print('\nHomeKit pairing code:', code)
-        print('On your iPhone: Home -> Add Accessory -> More Options -> ' + data['name'])
-        print('Enter the code; accept the uncertified accessory if prompted.')
-        print('Then open Nanoleaf and check that the device appears.')
-        ask('Press Enter after adding the device')
-        if health(data)['homeKit']['paired']:
-            print('HomeKit pairing verified.'); return
-        print('The device is not paired yet. The pairing code stays the same.')
+        auth = json.loads(Path('/var/lib/nanoleaf-hue-virtual/web-control-auth.json').read_text())
+        request = urllib.request.Request('http://'+data['ip']+':16021/api/v1/'+auth['token']+'/pairing',
+            data=b'{}', headers={'Content-Type':'application/json'}, method='POST')
+        with urllib.request.urlopen(request, timeout=3) as response:
+            assert response.status == 200
+        print('Pairing open for two minutes. Open Nanoleaf Desktop on the same LAN.')
+        print('Add '+data['name']+' using power-button pairing. The virtual button has already been pressed.')
+        print('iPhone and HomeKit pairing are not supported.')
+        ask('Press Enter after pairing, or to finish pairing later in the web portal')
+        if health(data).get('pairing', {}).get('apiPaired'):
+            print('API pairing verified. Configure this virtual device in the 4D Sync+ settings in Desktop.')
+            return
+        if choose('No API pairing detected', [('Finish later in the portal', 'later'), ('Open another pairing window', 'retry')]) == 'later':
+            return
 
 
 async def hue(data):
@@ -177,8 +180,8 @@ def setup():
         data = validate(json.loads(PATH.read_text()))
         print('Resuming the existing configuration; pairings are preserved.')
     else:
-        print('Required: a 4D and physical Shapes already linked through Sync+, on the same LAN as the container.')
-        print('The relay changes ARP only between these devices; it does not configure VLANs or routers.')
+        print('Required: a Nanoleaf 4D and Nanoleaf Desktop on the container LAN. Physical Shapes are not required.')
+        print('Direct UDP receiver: no ARP changes. iPhone/HomeKit pairing is not supported.')
         if ask('Continue? [y/N]', 'n').lower() != 'y':
             return
         addresses = json.loads(subprocess.check_output(['ip', '-j', '-4', 'addr', 'show']))
@@ -189,17 +192,12 @@ def setup():
                     options.append((f'{interface["ifname"]}: {info["local"]}/{info["prefixlen"]}',
                                     (interface['ifname'], info['local'], info['prefixlen'])))
         interface, ip, prefix = choose('Interface connected to the Nanoleaf LAN', options)
-        # Verify the LXC permits raw sockets before touching network associations.
-        with socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.htons(3)) as raw:
-            raw.bind((interface, 0))
         devices = discover()
         source = device('Nanoleaf 4D source', devices, 'NL69')
-        target = device('Physical Nanoleaf Shapes receiver', devices, 'NL42')
         network = ipaddress.IPv4Network(f'{ip}/{prefix}', strict=False)
-        if any(ipaddress.IPv4Address(v) not in network for v in (source, target)):
-            raise ValueError('The 4D and Shapes must be on the same LAN/interface as the container.')
-        data = {'interface': interface, 'ip': ip, 'prefix': prefix, 'source_ip': source, 'target_ip': target,
-                'source_mac': neighbor(source, interface), 'target_mac': neighbor(target, interface),
+        if any(ipaddress.IPv4Address(v) not in network for v in (source,)):
+            raise ValueError('The 4D must be on the same LAN/interface as the container.')
+        data = {'interface': interface, 'ip': ip, 'prefix': prefix, 'source_ip': source, 'mode': 'direct',
                 'hue_ip': address('Hue Bridge IP address'),
                 'name': ask('Virtual light name', 'Shapes Hue Bridge'),
                 'identity': '02:' + ':'.join(f'{x:02x}' for x in secrets.token_bytes(5)),
@@ -210,14 +208,14 @@ def setup():
                         '/etc/systemd/system/' + unit + '.service')
     command('systemctl', 'daemon-reload')
     command('systemctl', 'enable', '--now', VIRTUAL)
-    homekit(data)
+    desktop_pairing(data)
     asyncio.run(hue(data))
     from portal_install import provision
     provision(data)
     command('systemctl', 'enable', '--now', SYNC, PANEL)
-    print('\nInstallation complete. Turn on/off ' + data['name'] + ' in the Nanoleaf app.')
-    print('Keep the physical Shapes selected in Sync+ and enable Start at boot for the LXC in Proxmox.')
-    print('Portal: http://' + data['ip'] + ':8080 — create your username and password there.')
+    print('\nInstallation complete. Turn on/off ' + data['name'] + ' in the web portal or Nanoleaf Desktop.')
+    print('Keep the virtual device selected in 4D Sync+ in Desktop and enable Start at boot for the LXC in Proxmox.')
+    print('Portal: http://' + data['ip'] + ':8080  -  create your username and password there.')
     print('Map panel colors, adjust brightness and save profiles in the portal. Maintenance menu: nanoleaf-hue')
 
 
@@ -225,7 +223,7 @@ def menu():
     while True:
         choice = choose('Nanoleaf Hue Bridge', [
             ('Status', 'status'), ('Diagnostics', 'logs'), ('Change Hue area', 'area'),
-            ('Show HomeKit pairing code', 'code'), ('Complete setup', 'setup'),
+            ('Pair with Nanoleaf Desktop', 'pair'), ('Complete setup', 'setup'),
             ('Restart services', 'restart'), ('Deactivate services', 'remove'), ('Exit', 'exit')])
         if choice == 'exit': return
         if choice == 'setup': setup(); continue
@@ -235,8 +233,8 @@ def menu():
             if status.exists(): print(status.read_text())
         elif choice == 'logs':
             command('journalctl', '-u', SYNC, '-u', VIRTUAL, '-u', PANEL, '-n', '50', '--no-pager')
-        elif choice == 'code':
-            print('HomeKit pairing code:', json.loads(SETUP.read_text())['pincode'])
+        elif choice == 'pair':
+            desktop_pairing(json.loads(PATH.read_text()), force=True)
         elif choice == 'area':
             data = json.loads(PATH.read_text())
             command('systemctl', 'stop', SYNC)
@@ -257,7 +255,7 @@ def menu():
             command('systemctl', 'restart', VIRTUAL, PANEL)
             command('systemctl', 'start', SYNC)
         elif choice == 'remove':
-            if ask('Deactivate services and restore ARP? [y/N]', 'n').lower() == 'y':
+            if ask('Deactivate services? [y/N]', 'n').lower() == 'y':
                 command('systemctl', 'disable', '--now', PANEL, SYNC, VIRTUAL)
                 print('Services deactivated; configuration and pairings are preserved.')
 

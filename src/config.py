@@ -10,20 +10,23 @@ PATH = Path(os.environ.get('NH_CONFIG', '/etc/nanoleaf-hue/config.json'))
 
 
 def validate(data):
-    for key in ('ip', 'source_ip', 'target_ip', 'hue_ip'):
+    direct = data.get('mode') == 'direct'
+    addresses = ('ip', 'source_ip', 'hue_ip') if direct else ('ip', 'source_ip', 'target_ip', 'hue_ip')
+    for key in addresses:
         address = ipaddress.IPv4Address(data[key])
         if address.is_multicast or address.is_unspecified or address.is_loopback:
             raise ValueError('invalid device address: ' + key)
-    if len({data[k] for k in ('ip', 'source_ip', 'target_ip', 'hue_ip')}) != 4:
+    if len({data[k] for k in addresses}) != len(addresses):
         raise ValueError('device addresses must be distinct')
-    for key in ('identity', 'source_mac', 'target_mac'):
+    macs = ('identity',) if direct else ('identity', 'source_mac', 'target_mac')
+    for key in macs:
         value = data[key].lower()
         if not re.fullmatch(r'(?:[0-9a-f]{2}:){5}[0-9a-f]{2}', value):
             raise ValueError('invalid MAC: ' + key)
         if int(value[:2], 16) & 1 or value == '00:00:00:00:00:00':
             raise ValueError('MAC must be unicast and nonzero')
         data[key] = value
-    if len({data[k] for k in ('identity', 'source_mac', 'target_mac')}) != 3:
+    if len({data[k] for k in macs}) != len(macs):
         raise ValueError('MAC identities must be distinct')
     if not re.fullmatch(r'[a-zA-Z0-9_.:-]{1,15}', data['interface']):
         raise ValueError('invalid interface')
@@ -31,6 +34,8 @@ def validate(data):
         raise ValueError('invalid accessory name')
     if type(data.get('prefix',24)) is not int or not 1 <= data.get('prefix',24) <= 30:
         raise ValueError('invalid LAN prefix')
+    if data.get('mode', 'relay') not in ('direct', 'relay'):
+        raise ValueError('invalid receiver mode')
     uuid.UUID(data['hue_area'])
     return data
 
