@@ -203,11 +203,3 @@ This screenshot shows the tested Home Assistant OS installation during streaming
 4. Enter the bridge URL and dedicated token in Home Assistant. Use `http://BRIDGE_IP:8080` across VLANs if the `.local` name does not resolve.
 
 The integration is distributed through a custom repository, not the default HACS catalogue. Home Assistant controls and monitors the bridge; it does not process the color stream or duplicate your Hue lights. Five-second shared polling is used for status, and commands update the integration's state immediately.
-
-### Verified behavior
-
-Testing on 2026-10-13 confirmed all five entities, synchronization On/Off, global brightness changes reflected in the portal, saved-profile application, and Streaming status while more than 250 frames were sent to Hue Entertainment without mapping errors. Automated API/security tests, Home Assistant 2025.12 entity-runtime tests and hassfest validation also pass. Hardware validation currently covers one Home Assistant OS installation; other versions and network configurations still need independent testing.
-
-**Profile unknown** means that current settings do not exactly match a saved profile. Save the current setup in the portal if you want to select it from Home Assistant. An enabled receiver may be **Waiting** when no colors are arriving. Turning synchronization off releases Hue Entertainment without restoring a previous scene or switching off the bulbs.
-
-Tokens can be revoked in the portal, and Home Assistant supports reauthentication and address reconfiguration. Tokens are hashed locally, excluded from settings exports and cannot administer the portal, pair devices or install updates. HTTP is unencrypted: use a trusted LAN only. Automatic discovery and Home Assistant app/add-on packaging are not included. Read the [integration guide](https://github.com/Cristef/nanoleaf-hue-bridge-ha#readme) and [API guide](docs/AUTOMATION_API.md).
