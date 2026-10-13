@@ -1,61 +1,27 @@
 # Nanoleaf Hue Bridge
 
-Use a **Nanoleaf 4D camera to synchronize Philips Hue lights** through a virtual
-Shapes receiver. Version **4.3.0** receives Sync+ UDP colors directly from the
-4D, with nine virtual panels, guided Debian 12 installation and an English web portal.
-Physical Shapes are no longer required by the receiver, and no ARP relay is started.
+Bring your Philips Hue lights into a Nanoleaf 4D setup. The bridge appears as a virtual Shapes device, receives colors from the 4D over Sync+, and sends them to a Hue Entertainment area.
 
-**Pair and configure the virtual device only in Nanoleaf Desktop on the same LAN.**
-iPhone/iPad and HomeKit pairing are currently unsupported. Version 4 does not
-advertise a HomeKit accessory or provide a QR code/PIN. Do not use the iPhone
-Sync+ placement editor for this virtual device: in the tested setup, saving there
-removed it from the 4D's actual receiver configuration.
+It runs on Debian 12 and provides a web portal for mapping colors to lights, adjusting the output and saving profiles. You can also control it from [Home Assistant](https://github.com/Cristef/nanoleaf-hue-bridge-ha).
 
-This is an **experimental prerelease**. Direct reception and Hue output work on
-the development installation, including operation after removing HomeKit.
-The complete fresh-system Desktop-only onboarding still needs an independent
-hardware installation test. Nanoleaf app/firmware compatibility is not guaranteed.
+**Setup requires Nanoleaf Desktop on the same LAN.** iPhone, iPad and HomeKit pairing are not supported. The project is currently distributed as a prerelease.
 
-## How it works
+## What you need
 
-```text
-4D camera -> Sync+ UDP colors -> virtual Shapes (nine panels)
-                                   -> Hue Entertainment -> Hue lights
-Desktop / web portal On/Off --------> enable / release Hue stream
-```
+- A Nanoleaf 4D and a computer running Nanoleaf Desktop.
+- A Hue Bridge with an Entertainment area containing the lights you want to use.
+- A Debian 12 system with systemd, Internet access and a stable IPv4 address. Allow at least 1 CPU, 512 MB RAM and 4 GB of disk space.
+- The IPv4 addresses of the 4D and Hue Bridge, and access to the Hue Bridge's link button.
 
-The virtual device implements the tested Desktop API handshake and extControl v2
-UDP reception on port 60222. Hue uses HueStream v2 over DTLS rather than per-frame
-REST commands. API pairing and adding the virtual device to the 4D Sync+ setup are
-two separate steps; both are required. This project does not access the camera's video.
+Debian can run on a physical machine, a VM or an LXC container. Proxmox is optional. The installer expects systemd, so a minimal Docker container is not suitable.
 
-## Before installing
+Keep the Debian system, 4D and Nanoleaf Desktop on the same LAN for discovery and pairing. If you use VLANs or Wi-Fi client isolation, configure network access before installing. The installer handles the application, not the network.
 
-**Proxmox is not required.** Debian 12 can run on a physical machine, a VM,
-or an LXC/system container on any suitable platform. It must run systemd and
-allow LAN discovery and incoming TCP/UDP traffic. A minimal Docker-style
-application container without systemd is not supported by this installer.
-Hardware testing so far used Debian 12 in LXC; other hosts have not yet been
-independently validated.
+Physical Shapes, device MAC addresses and HomeKit codes are not needed.
 
-- A fresh Debian 12 system running systemd: 1 CPU, 512 MB RAM, at least 4 GB disk,
-  Internet access and a stable IPv4 address.
-- A Nanoleaf 4D and its IPv4 address; Screen Mirror must be available.
-- Nanoleaf Desktop on a computer on the **same LAN** as the Debian system and 4D.
-- A Hue Bridge supporting Entertainment, its IPv4 address, and an Entertainment
-  area created in the Hue app with the lights you want to use.
-- Access to the Hue Bridge's physical link button for initial authorization.
+## Install
 
-The installer detects the Debian system address/interface and generates the virtual
-identity. Physical device MAC addresses, physical Shapes and HomeKit codes are not
-needed. Configure VLANs, DHCP reservations and Wi-Fi client isolation beforehand;
-the installer does not configure your virtualization platform, routers or access points. Allow mDNS
-discovery (UDP 5353), the virtual API (TCP 16021), Sync+ (UDP 60222), and the
-portal (TCP 80 and 8080) on your trusted LAN. Run one bridge instance for this configuration.
-
-## Install on a fresh Debian 12 system
-
-Run this block as root on the Debian 12 system:
+Run these commands as root on a fresh Debian 12 system:
 
 ```bash
 apt-get update && apt-get install -y ca-certificates curl
@@ -63,143 +29,90 @@ curl -fL https://raw.githubusercontent.com/Cristef/nanoleaf-hue-bridge/v4.3.0/bo
 bash /root/nanoleaf-hue-bootstrap.sh
 ```
 
-The bootstrap downloads this release. The installer upgrades Debian packages,
-installs libraries and a Python environment, creates services, and guides you
-through addresses, virtual name, Desktop pairing, Hue authorization and area selection.
-Alternatively, extract the [release ZIP](https://github.com/Cristef/nanoleaf-hue-bridge/releases/tag/v4.3.0)
-and run `bash install.sh` from its directory.
+The installer updates Debian, installs the dependencies and sets up the services. It then asks for the device addresses and guides you through pairing and Hue area selection.
 
-During Nanoleaf pairing, choose the **power-button method in Desktop** within
-the two-minute window opened by the wizard. The virtual button is already pressed.
-Then add the receiver to the 4D Sync+ configuration in Desktop, set its position,
-save and start Screen Mirror. If necessary, finish pairing later in the portal.
-Press the physical Hue Bridge button when prompted and select your Entertainment area.
+You can also download the [release ZIP](https://github.com/Cristef/nanoleaf-hue-bridge/releases/tag/v4.3.0), extract it and run `bash install.sh`.
 
-Ensure the Debian system starts automatically if you want continuous operation.
-For a VM or container, enable autostart in your hosting platform (for example,
-**Start at boot** in Proxmox). The installer enables the bridge services at boot.
-Open `http://DEBIAN_IP:8080/`
-and create your username and password (minimum eight characters). No access key
-is required on first use. See the [complete installation and pairing guide](docs/INSTALLATION_V4.md).
+When the wizard opens the Nanoleaf pairing window, choose **power-button pairing** in Nanoleaf Desktop. There is no physical button to press: the wizard opens that window for two minutes. Next, add the virtual device to the 4D's Sync+ configuration in Desktop, set its position and start Screen Mirror.
 
-## Use the web portal
+For Hue, press the Bridge's link button when prompted and choose your Entertainment area. The services are enabled at boot; enable autostart for the host or VM/container as well if you want the bridge available all the time.
 
-Open **http://nanoleaf-hue.local/** on the same LAN, or use
-`http://DEBIAN_IP:8080/` as a fallback. The short name uses mDNS and port 80;
-client/network mDNS support is required. No router DNS changes or HTTPS are configured.
-For multiple installations, set a unique `portal_name` ending in `.local` in
-`/etc/nanoleaf-hue/config.json` before provisioning/restarting the services.
+Open `http://DEBIAN_IP:8080/` and create your portal account. The [installation guide](docs/INSTALLATION_V4.md) covers the setup in more detail.
 
-Create your username and password on first use (minimum eight characters).
-The portal has six separate, bookmarkable views. Unsaved drafts survive switching
-between pages; they become active only after saving.
+## The web portal
 
-| Page | What to do |
-| --- | --- |
-| Live | Watch nine hexagons and the last RGB output sent to each Hue. Open Immersive preview for a full-viewport glow display; exit with Esc or the exit button. Run a temporary solid, sequence or identify test for up to 60 seconds. |
-| Mapping | Select a light and its panels. Preview an automatic suggestion from Hue channel positions. Spread mode expands relative positions; change axis/mirror and preview repeatedly, then explicitly save. Identical positions can share a panel. |
-| Color | Adjust global/individual brightness, smoothing, saturation, black threshold and per-light RGB gains. |
-| Profiles | Save and apply area, mapping, brightness and color-response presets. |
-| Setup | Discover/change the 4D source, open the 120-second Desktop pairing window, authorize Hue, select an Entertainment area, and export/review/import settings. Source selection does not register Sync+ recipients automatically: complete that in Desktop. |
-| System | Inspect connection diagnostics and release notes. Complete releases are installed with `update.sh`; GUI update/recovery handles compatible locally staged bundles only. |
+Use `http://nanoleaf-hue.local/`, or `http://DEBIAN_IP:8080/` if your network does not resolve the local name.
 
-Choose **Auto**, **Light** or **Dark** in the header. Auto follows your system
-appearance; the preference stays in your browser. Page and feedback transitions
-respect reduced-motion preferences. Immersive mode fills the page, while browser
-chrome remains visible; it does not alter the actual lamp colors or configuration.
-Temporary color tests do take over the selected Hue area, respect saved brightness
-and response, and automatically return to the previous synchronization mode.
+Start with **Mapping**: select a Hue light, then choose the virtual panels whose colors it should follow. A light can follow one panel, a group of panels or the average of all panels. Position-based suggestions are available if you have arranged the lights in the Hue Entertainment area.
 
-Mapping supports all channels in the selected area; automated and browser checks
-include ten synthetic channels. Real hardware validation used two Hue lights.
-Desktop placement controls what the 4D sends to the virtual panels. The portal
-mapping then chooses which of those colors each Hue follows. The decorative
-hexagon layout is not a physical-position editor for the 4D.
+The other pages cover the rest of the setup:
 
-These screenshots show version 4.1 with synthetic lights, panel IDs and addresses:
+- **Live** shows incoming panel colors and Hue output, with an immersive preview and temporary color tests.
+- **Color** adjusts global and per-light brightness, smoothing, saturation, black threshold and RGB gains.
+- **Profiles** saves different mappings and color settings for later use.
+- **Setup** manages Desktop pairing, the 4D source, Hue pairing, area selection and settings import/export.
+- **System** provides connection diagnostics and release information.
 
-![Live overview in dark mode](docs/images/portal-live-v41.png)
-![Immersive live preview](docs/images/portal-immersive-v41.png)
-![Select lights and map the hexagon panels](docs/images/portal-mapping-v41.png)
-![Desktop pairing and Hue setup](docs/images/portal-setup-v41.png)
+The portal supports light, dark and automatic themes. Save your changes when you are happy with the result.
 
-## Daily operation
+![Live overview](docs/images/portal-live-v41.png)
+![Immersive preview](docs/images/portal-immersive-v41.png)
+![Light-to-panel mapping](docs/images/portal-mapping-v41.png)
+![Pairing and device setup](docs/images/portal-setup-v41.png)
 
-Keep the Debian system and services running. Turn the virtual device on/off in
-Desktop or the portal. On waits for incoming colors before claiming the Hue area;
-Off releases it without switching off the bulbs. Two seconds without fresh frames
-releases the stream; new frames resume it while the virtual device is on.
-The maintenance menu is `nanoleaf-hue`. Pairings and settings survive service restarts.
-Avoid other applications streaming to the same Hue Entertainment area.
+## Everyday use
 
-## Upgrade from version 3 or 4
+Leave the Debian system and services running. Turn **Synchronization** on or off from the portal, Nanoleaf Desktop or Home Assistant.
 
-Take a full system backup or VM/container snapshot first. Download and extract the release you want to install, then run:
+When enabled, the bridge waits for colors from the 4D before starting Hue Entertainment. Turning it off releases the Entertainment area and leaves the bulbs on. If the color stream stops, the bridge releases the area and resumes when frames arrive again.
+
+Use Nanoleaf Desktop for the virtual device's Sync+ placement. Panel mapping in the portal determines how those incoming colors are distributed to the Hue lights. Avoid running another Entertainment application on the same area at the same time.
+
+The terminal maintenance menu is available with `nanoleaf-hue`.
+
+## Home Assistant
+
+The [Home Assistant integration](https://github.com/Cristef/nanoleaf-hue-bridge-ha) lets you switch synchronization, select a saved profile and adjust brightness from your dashboard or automations. It also reports the stream status and whether Sync+ frames are arriving. It has been tested on Home Assistant OS.
+
+![Home Assistant controls and sensors](docs/images/home-assistant-controls.png)
+
+Install it through a **HACS custom repository**, using `https://github.com/Cristef/nanoleaf-hue-bridge-ha` and the **Integration** category. After restarting Home Assistant, add **Nanoleaf Hue Bridge** under **Settings → Devices & services**.
+
+Create a dedicated token in the bridge portal under **Setup → Home Assistant integration**, then enter it and the bridge URL in Home Assistant. Use the IP address if Home Assistant cannot resolve the `.local` name. The integration requires bridge 4.2.0 or newer and Home Assistant 2025.12 or newer.
+
+The Debian bridge still handles the color stream. Home Assistant adds control and automation without becoming part of the streaming path.
+
+## Updating
+
+Take a backup or snapshot, download and extract the new release, then run:
 
 ```bash
 bash update.sh
 ```
 
-The updater supports `/opt/nanoleaf-hue` installations created by the public
-installer. It makes a private backup in `/root/nanoleaf-hue-backups`, preserves
-accounts, identities, API tokens, Hue credentials and profiles, disables HomeKit,
-and upgrades the portal. When upgrading from version 3, it also replaces ARP
-capture with direct reception. Version 4.0 mappings remain valid. Startup failure
-triggers rollback.
-Private prototype installations at `/opt/nanoleaf-probe` are not supported by it.
+The updater supports installations created by the public installer. It preserves accounts, pairings, profiles and settings, and creates a rollback backup. The portal's staged-update controls are for local maintenance bundles; use `update.sh` for a complete release upgrade.
 
-Use Desktop to pair if necessary and register the virtual recipient in 4D Sync+.
-Review existing mappings: physical panel IDs from version 3 do not match the new
-virtual IDs 1-9. Reassign groups before using saved old profiles. Changing area
-also clears active channel groups and individual brightness for that area.
+When upgrading from version 3, review the panel mappings: the direct receiver uses virtual panel IDs 1–9, replacing the physical panel IDs used by the old relay.
 
-## Troubleshooting and security
+## Network and compatibility
 
-For missing colors, verify Desktop pairing **and** 4D Sync+ recipient selection,
-Screen Mirror, source IP, UDP reachability and Wi-Fi isolation. A disconnected
-iPhone entry does not indicate Desktop/API failure; iPhone pairing is unsupported.
-For Hue problems, verify link-button authorization, area membership and competing
-streams. Consult portal diagnostics or `nanoleaf-hue` -> Diagnostics.
+The bridge uses mDNS for discovery (UDP 5353), the Nanoleaf API for pairing and control (TCP 16021), and Sync+ color reception on UDP 60222. The portal listens on TCP 80 and 8080. Hue output uses HueStream v2 over DTLS. The bridge receives color data, not the camera's video.
 
-The portal uses password hashing, authenticated sessions and origin/CSRF checks.
-It is HTTP on a trusted LAN: do not expose it to the Internet. First-login setup
-is available until the initial account is created; finish it promptly. Internal
-API tokens and Hue credentials stay on the Debian system and are excluded from exports.
+The portal and automation API use HTTP and are intended for a trusted LAN. Keep them off the public Internet. Automation tokens can be revoked from the portal and are excluded from settings exports.
+
+Development and hardware testing have used Debian 12 in LXC, a Nanoleaf 4D, two Hue lights and Home Assistant OS. Mapping also has automated coverage for ten Hue channels. Fresh installations and other Nanoleaf firmware versions still need wider testing.
+
+If colors are missing, check the virtual device's selection in Desktop Sync+, Screen Mirror and network access. For Hue connection issues, check the Entertainment area and whether another application is using it. The portal diagnostics provide the current connection state.
 
 ## Development and license
 
-On Linux with Python 3.11/3.12, install `requirements.txt` and run
-`python tests/run.py` and `bash -n install.sh bootstrap.sh update.sh`.
-The tests use synthetic addresses and isolated state. Archived relay/HomeKit
-modules remain for compatibility/regression coverage; public version 4 services
-do not enable them. This is not an official Nanoleaf or Philips Hue product.
+Install `requirements.txt` on Linux, then run:
 
-This project is **source-available for noncommercial use** under
-[PolyForm Noncommercial 1.0.0](LICENSE). Commercial-use rights are not granted.
-Third-party libraries retain their own licenses: see [NOTICE.md](NOTICE.md) and
-[LICENSE_AUDIT.md](LICENSE_AUDIT.md).
+```bash
+python tests/run.py
+bash -n install.sh bootstrap.sh update.sh
+```
 
-## Home Assistant
+The project is available for noncommercial use under [PolyForm Noncommercial 1.0.0](LICENSE). Third-party dependencies retain their own licenses; see [NOTICE.md](NOTICE.md) and [LICENSE_AUDIT.md](LICENSE_AUDIT.md).
 
-The separate [Home Assistant integration](https://github.com/Cristef/nanoleaf-hue-bridge-ha) has been **tested on a Home Assistant OS installation**, including installation through a HACS custom repository and a live 4D → Hue Entertainment stream. It requires bridge **4.2.0 or newer** and Home Assistant **2025.12 or newer**.
-
-The Debian bridge continues to run independently. Home Assistant provides:
-
-- **Synchronization**: enable or disable the virtual receiver.
-- **Global brightness**: adjust output while preserving individual light levels.
-- **Profile**: apply a configuration saved in the bridge portal.
-- **Stream status**: monitor Off, Waiting, Streaming, Error or Unavailable.
-- **Sync+ frames arriving**: see whether recent color frames are reaching the bridge.
-
-![Nanoleaf Hue Bridge controls and sensors in Home Assistant](docs/images/home-assistant-controls.png)
-
-This screenshot shows the tested Home Assistant OS installation during streaming. Home Assistant's surrounding interface follows the user's selected language; the integration's entity names are English. The displayed firmware belongs to the development bridge used for validation, rather than the public release numbering.
-
-### Install and connect
-
-1. In HACS, add `https://github.com/Cristef/nanoleaf-hue-bridge-ha` as a **custom repository**, category **Integration**, and download it.
-2. Restart Home Assistant, then open **Settings → Devices & services → Add integration → Nanoleaf Hue Bridge**.
-3. In the bridge portal, open **Setup → Home Assistant integration → Create token**. Copy the token when displayed; it is shown only once.
-4. Enter the bridge URL and dedicated token in Home Assistant. Use `http://BRIDGE_IP:8080` across VLANs if the `.local` name does not resolve.
-
-The integration is distributed through a custom repository, not the default HACS catalogue. Home Assistant controls and monitors the bridge; it does not process the color stream or duplicate your Hue lights. Five-second shared polling is used for status, and commands update the integration's state immediately.
+This is a community project, unaffiliated with Nanoleaf or Philips Hue.
