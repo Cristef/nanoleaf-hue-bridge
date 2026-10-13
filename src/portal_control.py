@@ -22,6 +22,8 @@ class Control(AdvancedControl, BaseControl):
         super().__init__()
         self.store = Store(os.environ.get('PANEL_CONFIG', str(self.mapping_path.with_name('portal-settings.json'))))
         self.auth = Auth(self.mapping_path.with_name('portal-access.json'))
+        from automation_api import AutomationAPI
+        self.automation = AutomationAPI(self)
         self.catalog = {}
         self.job = {'phase': 'idle'}
         self.job_lock = threading.Lock()
@@ -85,7 +87,7 @@ class Control(AdvancedControl, BaseControl):
             result['panels'] = result.get('panels') or []
             if result['phase'] == 'waiting-for-colors':
                 result['diagnostics']['huePhase'] = 'waiting'
-            result.update({'version': '4.1.0', 'configRevision': revision(config), 'activeSettings': stream,
+            result.update({'version': '4.2.0', 'configRevision': revision(config), 'activeSettings': stream,
                            'tuningRevision': revision(stream['tuning']),
                            'profiles': [{'name': name, 'bridge': value['bridge'], 'area': value['area']}
                                         for name, value in config['profiles'].items()],

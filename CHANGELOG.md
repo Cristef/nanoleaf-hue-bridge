@@ -1,5 +1,13 @@
 # Changelog
 
+## 4.2.0 - 2026-10-13 (experimental)
+
+- Versioned automation API for Home Assistant with limited, hashed, revocable tokens.
+- Portal Setup token creation, one-time display and revocation.
+- State, synchronization, saved profiles and global brightness commands.
+- Preserve individual brightness, account security and streaming architecture.
+- Dedicated experimental integration: https://github.com/Cristef/nanoleaf-hue-bridge-ha
+
 ## 4.1.0 - 2026-10-12 (experimental)
 
 - Six dedicated portal views with Auto/Light/Dark themes and preserved unsaved drafts.

@@ -11,7 +11,7 @@ import time
 import urllib.request
 from portal_settings import atomic_json, revision, TUNING
 
-VERSION='4.1.0'
+VERSION='4.2.0'
 SOURCE=Path('/var/lib/nanoleaf-hue-sync/source.json')
 
 def channel_settings(value):

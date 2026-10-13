@@ -30,6 +30,8 @@ class Handler(BaseHandler):
         control = self.server.control
         if not self.valid_host():
             return self.respond(403, {'error': 'Host not allowed.'})
+        if self.path.startswith('/api/integration/v1/'):
+            return control.automation.handle(self)
         if self.path == '/api/session':
             return self.respond(200, {'authenticated': self.authenticated(), 'csrf': control.csrf,
                                      'setupRequired': control.auth.needs_setup()})
@@ -39,6 +41,8 @@ class Handler(BaseHandler):
             name = self.path[1:]
             mime = 'text/javascript; charset=utf-8' if name.endswith('.js') else 'text/css; charset=utf-8'
             return self.respond(200, (Path(__file__).parent/'web'/name).read_bytes(), mime)
+        if self.path == '/integration.js':
+            return self.respond(200, (Path(__file__).parent/'web'/'integration.js').read_bytes(), 'text/javascript; charset=utf-8')
         if self.path == '/advanced.js':
             return self.respond(200, (Path(__file__).parent/'web'/'advanced.js').read_bytes(), 'text/javascript; charset=utf-8')
         if self.path == '/portal.js':
@@ -53,6 +57,9 @@ class Handler(BaseHandler):
 
     def do_POST(self):
         control = self.server.control
+        if self.path.startswith('/api/integration/v1/'):
+            if not self.valid_host():return self.respond(403, {'error':'Host not allowed.'})
+            return control.automation.handle(self)
         if (not self.valid_host() or self.headers.get('Origin') != 'http://' + self.headers.get('Host', '')
                 or self.headers.get('X-Control-Token') != control.csrf
                 or self.headers.get('Content-Type', '').split(';')[0] != 'application/json'):
@@ -85,7 +92,7 @@ class Handler(BaseHandler):
                 control.auth.logout(self.headers.get('Cookie'))
                 self.extra_headers = {'Set-Cookie': 'nhb_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0'}
                 return self.respond(200, {'authenticated': False})
-            actions = {'/api/mapping': control.save, '/api/brightness': control.save_brightness,
+            actions = {'/api/integration/tokens': control.automation.manage, '/api/mapping': control.save, '/api/brightness': control.save_brightness,
                        '/api/tuning': control.save_tuning, '/api/profile': control.profile,
                        '/api/area': control.select_area, '/api/import/preview': control.import_preview,
                        '/api/import': control.import_settings, '/api/identify': control.identify,
@@ -126,7 +133,7 @@ def main():
         short_server = ThreadingHTTPServer((os.environ['PANEL_BIND'], 80), Handler)
         short_server.control = control
         threading.Thread(target=short_server.serve_forever, daemon=True).start()
-    print('Nanoleaf Hue Bridge portal 4.1.0 ready', flush=True)
+    print('Nanoleaf Hue Bridge portal 4.2.0 ready', flush=True)
     server.serve_forever()
 
 

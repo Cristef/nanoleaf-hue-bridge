@@ -1,6 +1,6 @@
 # Release checklist
 
-Version 4.1.0 is an experimental prerelease. Publish only this directory.
+Version 4.2.0 is an experimental prerelease. Publish only this directory.
 
 - Run Linux Python tests, Python/JavaScript syntax checks and Bash syntax checks.
 - Verify Desktop pairing window authorization, expiration and persistent tokens.
