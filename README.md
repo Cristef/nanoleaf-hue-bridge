@@ -1,7 +1,7 @@
 # Nanoleaf Hue Bridge
 
 Use a **Nanoleaf 4D camera to synchronize Philips Hue lights** through a virtual
-Shapes receiver. Version **4.2.0** receives Sync+ UDP colors directly from the
+Shapes receiver. Version **4.3.0** receives Sync+ UDP colors directly from the
 4D, with nine virtual panels, guided Debian 12 installation and an English web portal.
 Physical Shapes are no longer required by the receiver, and no ARP relay is started.
 
@@ -59,14 +59,14 @@ Run this block as root on the Debian 12 system:
 
 ```bash
 apt-get update && apt-get install -y ca-certificates curl
-curl -fL https://raw.githubusercontent.com/Cristef/nanoleaf-hue-bridge/v4.2.0/bootstrap.sh -o /root/nanoleaf-hue-bootstrap.sh
+curl -fL https://raw.githubusercontent.com/Cristef/nanoleaf-hue-bridge/v4.3.0/bootstrap.sh -o /root/nanoleaf-hue-bootstrap.sh
 bash /root/nanoleaf-hue-bootstrap.sh
 ```
 
 The bootstrap downloads this release. The installer upgrades Debian packages,
 installs libraries and a Python environment, creates services, and guides you
 through addresses, virtual name, Desktop pairing, Hue authorization and area selection.
-Alternatively, extract the [release ZIP](https://github.com/Cristef/nanoleaf-hue-bridge/releases/tag/v4.2.0)
+Alternatively, extract the [release ZIP](https://github.com/Cristef/nanoleaf-hue-bridge/releases/tag/v4.3.0)
 and run `bash install.sh` from its directory.
 
 During Nanoleaf pairing, choose the **power-button method in Desktop** within
@@ -134,7 +134,7 @@ Avoid other applications streaming to the same Hue Entertainment area.
 
 ## Upgrade from version 3 or 4
 
-Take a full system backup or VM/container snapshot first. Download/extract version 4.1 and run:
+Take a full system backup or VM/container snapshot first. Download and extract the release you want to install, then run:
 
 ```bash
 bash update.sh

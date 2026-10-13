@@ -1,6 +1,6 @@
 # Release checklist
 
-Version 4.2.0 is an experimental prerelease. Publish only this directory.
+Version 4.3.0 is an experimental prerelease. Publish only this directory.
 
 - Run Linux Python tests, Python/JavaScript syntax checks and Bash syntax checks.
 - Verify Desktop pairing window authorization, expiration and persistent tokens.
@@ -12,3 +12,5 @@ Version 4.2.0 is an experimental prerelease. Publish only this directory.
 - Record limits: development hardware used two Hue lights; ten-channel mapping is
   synthetic; complete fresh Debian Desktop-only onboarding still needs hardware testing.
 - Never run a second production instance against the same configuration during tests.
+
+- Home Assistant OS: HACS installation, UI setup, five entities, switch, brightness, profile and actual Streaming state verified on one installation.

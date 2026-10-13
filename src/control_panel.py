@@ -133,7 +133,7 @@ def main():
         short_server = ThreadingHTTPServer((os.environ['PANEL_BIND'], 80), Handler)
         short_server.control = control
         threading.Thread(target=short_server.serve_forever, daemon=True).start()
-    print('Nanoleaf Hue Bridge portal 4.2.0 ready', flush=True)
+    print('Nanoleaf Hue Bridge portal 4.3.0 ready', flush=True)
     server.serve_forever()
 
 

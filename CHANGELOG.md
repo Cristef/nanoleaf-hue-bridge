@@ -1,5 +1,14 @@
 # Changelog
 
+## 4.3.0 - 2026-10-13
+
+- Package the Home Assistant integration support validated on a Home Assistant OS VM.
+- Confirm five entities, synchronization On/Off, global brightness, saved profiles and live streaming.
+- Include the Home Assistant screenshot, HACS installation procedure and tested behavior in the bridge README.
+- Retain automation API v1 introduced in 4.2, scoped revocable tokens and the separate Home Assistant integration repository.
+- Correct upgrade instructions to refer to the selected release.
+- The bridge remains an experimental prerelease pending independent fresh-system onboarding validation.
+
 ## 4.2.0 - 2026-10-13 (experimental)
 
 - Versioned automation API for Home Assistant with limited, hashed, revocable tokens.
