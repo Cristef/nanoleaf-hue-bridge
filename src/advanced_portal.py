@@ -81,6 +81,10 @@ class AdvancedControl:
         result['version']=VERSION
         result['source']=json.loads(SOURCE.read_text()) if SOURCE.exists() else {'ip':__import__('config').CONFIG.get('source_ip','')}
         result['diagnosticReport']=diagnose(health,hue,result['area'],now)
+        registration=__import__('control_panel_v2').read_json(self.runtime/'syncplus-registration.json',{})
+        result['syncPlusRegistration']=registration if now-registration.get('time',0)<45 else {'phase':'unknown'}
+        if health.get('on') and not result['fresh'] and result['syncPlusRegistration'].get('phase') in ('missing','disabled'):
+            result['diagnosticReport']={'code':'syncplus-registration','severity':'warning','message':'The 4D no longer sends to this virtual receiver. Opening the mobile Sync+ editor can remove it. Use Repair Sync+ registration in Setup.'}
         result['testMode']={'active':now<test.get('expires',0),'secondsRemaining':max(0,math.ceil(test.get('expires',0)-now)),'mode':test.get('mode','none')}
         if result['testMode']['active']:
             result['diagnosticReport']={'code':'testing','severity':'info','message':'Temporary test colors are active. Normal operation resumes automatically.'}
@@ -162,9 +166,9 @@ class AdvancedControl:
 
     def maintenance_action(self,payload):
         action=payload.get('action')
-        if action not in ('update','rollback'):raise ValueError('Invalid action')
+        if action not in ('update','rollback','syncplus'):raise ValueError('Invalid action')
         current=__import__('control_panel_v2').read_json(self.runtime/'maintenance-status.json',{})
-        if current.get('phase') in ('backing-up','installing','rolling-back'):raise FileExistsError('Maintenance in progress')
+        if current.get('phase') in ('backing-up','installing','rolling-back','registering'):raise FileExistsError('Maintenance in progress')
         if action=='update' and not (self.mapping_path.parent/'updates'/'candidate.json').exists():raise ValueError('No compatible local update staged')
         atomic_json(self.runtime/'maintenance-request.json',{'action':action,'time':time.time()})
         return {'status':'queued'}

@@ -2,7 +2,11 @@ import base64
 import copy
 import struct
 import unittest
-from syncplus_setup import layout_string, updated_config
+import tempfile
+import json
+from pathlib import Path
+from unittest.mock import patch
+from syncplus_setup import layout_string, updated_config, registration_status
 
 
 class SyncPlusSetupTests(unittest.TestCase):
@@ -41,6 +45,20 @@ class SyncPlusSetupTests(unittest.TestCase):
                        {'devices': [{'deviceId': 'virtual'}, {'deviceId': 'virtual'}]}]:
             with self.assertRaises(ValueError):
                 updated_config(config, 'virtual', '192.168.10.93', 'test', self.layout)
+
+    def test_registration_monitor_only_reads_and_identifies_removed_receiver(self):
+        data = {'source_ip': '192.168.10.53', 'ip': '192.168.10.93', 'identity': '02:10:dd:28:c5:cb'}
+        with tempfile.TemporaryDirectory() as directory, patch('syncplus_setup.STATE', Path(directory)), patch('syncplus_setup.api') as request:
+            Path(directory, '4d-api-auth.json').write_text(json.dumps({'ip': data['source_ip'], 'token': 'test-secret'}))
+            request.return_value = {'devices': [{'deviceId': 'physical', 'enabled': True}]}
+            self.assertEqual(registration_status(data), {'phase': 'missing'})
+            self.assertEqual(request.call_args.args[2], {'write': {'command': 'getOrchestratorScreenConfig'}})
+            request.return_value = {'devices': [{'deviceId': data['identity'].upper(), 'ipAddress': data['ip'], 'enabled': True}]}
+            self.assertEqual(registration_status(data), {'phase': 'registered'})
+            request.return_value['devices'][0]['enabled'] = False
+            self.assertEqual(registration_status(data), {'phase': 'disabled'})
+            request.return_value['devices'][0]['ipAddress'] = '192.168.10.94'
+            self.assertEqual(registration_status(data), {'phase': 'missing'})
 
 
 if __name__ == '__main__':

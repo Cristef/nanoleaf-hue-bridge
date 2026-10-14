@@ -5,6 +5,7 @@ After=network-online.target nanoleaf-hue-virtual.service nanoleaf-hue-sync.servi
 
 [Service]
 User=root
+SupplementaryGroups=nanoleaf-hue
 UMask=0077
 EnvironmentFile=/etc/nanoleaf-hue/portal.env
 ExecStart=/opt/nanoleaf-hue/venv/bin/python /opt/nanoleaf-hue/control_panel.py

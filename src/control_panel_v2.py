@@ -168,7 +168,7 @@ class Control:
             atomic_json(self.runtime/'test-mode.json',{'expires':0})
         auth = read_json(self.control_auth)
         if not auth or not auth.get('token'):
-            raise ValueError('Virtual control unavailable')
+            raise RuntimeError('Virtual control unavailable')
         request = urllib.request.Request(self.virtual + '/api/v1/' + auth['token'] + '/state',
                                          data=json.dumps({'on': {'value': value}}).encode(),
                                          headers={'Content-Type': 'application/json'}, method='PUT')

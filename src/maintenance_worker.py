@@ -73,7 +73,15 @@ def source_update():
 def main():
     os.umask(0o077)
     request=RUNTIME/'maintenance-request.json'
+    next_registration_check=0
     while True:
+        if time.monotonic()>=next_registration_check:
+            next_registration_check=time.monotonic()+15
+            try:
+                from syncplus_setup import registration_status
+                registration=registration_status(json.loads(Path('/etc/nanoleaf-hue/config.json').read_text()))
+            except Exception:registration={'phase':'unavailable'}
+            atomic_json(RUNTIME/'syncplus-registration.json',{**registration,'time':time.time()})
         if request.exists():
             try:
                 data=json.loads(request.read_text());request.unlink()
@@ -81,6 +89,13 @@ def main():
                 if data['action']=='update':apply_update()
                 elif data['action']=='rollback':rollback()
                 elif data['action']=='source':source_update()
+                elif data['action']=='syncplus':
+                    from syncplus_setup import register
+                    status('registering','Registering this virtual receiver in the 4D.')
+                    def no_pairing():raise RuntimeError('Pair the physical 4D from the terminal maintenance menu first')
+                    register(json.loads(Path('/etc/nanoleaf-hue/config.json').read_text()),no_pairing)
+                    next_registration_check=0
+                    status('complete','Sync+ receiver registered. Other receivers are preserved.')
                 else:raise ValueError('Invalid request')
             except Exception:status('error','Maintenance failed. Check diagnostics; no successful update confirmed.')
         time.sleep(.5)

@@ -66,7 +66,7 @@ Leave the Debian system and services running. Turn **Synchronization** on or off
 
 When enabled, the bridge waits for colors from the 4D before starting Hue Entertainment. Turning it off releases the Entertainment area and leaves the bulbs on. If the color stream stops, the bridge releases the area and resumes when frames arrive again.
 
-Nanoleaf Desktop pairs the virtual device but does not provide a Sync+ placement editor. The installer handles receiver registration. Panel mapping in the portal determines how those incoming colors are distributed to the Hue lights. Avoid running another Entertainment application on the same area at the same time.
+Nanoleaf Desktop pairs the virtual device but does not provide a Sync+ placement editor. The installer handles receiver registration. Panel mapping in the portal determines how those incoming colors are distributed to the Hue lights. Opening the mobile Sync+ editor can remove the virtual receiver even without saving. **Setup → Repair Sync+ registration** restores it while preserving the other receivers. The portal checks registration separately from the On/Off switch. Avoid running another Entertainment application on the same area at the same time.
 
 The terminal maintenance menu is available with `nanoleaf-hue`.
 

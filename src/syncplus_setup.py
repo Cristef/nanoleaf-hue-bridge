@@ -12,6 +12,23 @@ import urllib.request
 STATE = Path('/var/lib/nanoleaf-hue-sync')
 
 
+def registration_status(data):
+    """Read-only check; never re-add a receiver removed by another application."""
+    path = STATE / '4d-api-auth.json'
+    if not path.exists():
+        return {'phase': 'unpaired'}
+    saved = json.loads(path.read_text())
+    if saved.get('ip') != data['source_ip']:
+        return {'phase': 'unpaired'}
+    config = api(data['source_ip'], 'api/v1/' + saved['token'] + '/effects',
+        {'write': {'command': 'getOrchestratorScreenConfig'}}, 'PUT')
+    receivers = [d for d in config.get('devices', [])
+                 if d.get('deviceId', '').lower() == data['identity'].lower()]
+    if len(receivers) != 1 or receivers[0].get('ipAddress') != data['ip']:
+        return {'phase': 'missing'}
+    return {'phase': 'registered' if receivers[0].get('enabled') else 'disabled'}
+
+
 def api(ip, path, body=None, method=None):
     request = urllib.request.Request('http://' + ip + ':16021/' + path,
         data=None if body is None else json.dumps(body).encode(),
@@ -88,15 +105,23 @@ def register(data, prompt):
     def command(name, **params):
         return api(data['source_ip'], root + '/effects', {'write': {'command': name, **params}}, 'PUT')
     before = command('getOrchestratorScreenConfig')
-    virtual_state = json.loads(Path('/var/lib/nanoleaf-hue-virtual/state.json').read_text())
-    control = json.loads(Path('/var/lib/nanoleaf-hue-virtual/web-control-auth.json').read_text())['token']
-    tokens = [t for t in virtual_state['tokens'] if t != control]
-    if not tokens:
-        raise ValueError('Complete Desktop pairing before registering Sync+')
-    virtual_token = tokens[0]
+    receiver_auth = STATE / 'syncplus-receiver-auth.json'
+    saved = json.loads(receiver_auth.read_text()) if receiver_auth.exists() else {}
+    if saved.get('identity') == data['identity'] and saved.get('ip') == data['ip']:
+        virtual_token = saved['token']
+    else:
+        # Initial registration runs in the root installer. Keep subsequent repairs
+        # independent of access to the virtual service's full credential store.
+        virtual_state = json.loads(Path('/var/lib/nanoleaf-hue-virtual/state.json').read_text())
+        control = json.loads(Path('/var/lib/nanoleaf-hue-virtual/web-control-auth.json').read_text())['token']
+        tokens = [t for t in virtual_state['tokens'] if t != control]
+        if not tokens:
+            raise ValueError('Complete Desktop pairing before registering Sync+')
+        virtual_token = tokens[0]
     info = api(data['ip'], 'api/v1/' + virtual_token)
     if info['serialNo'].lower() != data['identity'].replace(':', '').lower():
         raise ValueError('Virtual identity mismatch')
+    atomic_json(receiver_auth, {'identity': data['identity'], 'ip': data['ip'], 'token': virtual_token})
     after = updated_config(before, data['identity'].upper(), data['ip'], virtual_token, info['panelLayout']['layout'])
     backup = STATE / 'syncplus-backups' / (str(time.time_ns()) + '.json')
     atomic_json(backup, before)

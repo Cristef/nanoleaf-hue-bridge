@@ -78,6 +78,8 @@ class Device:
             fd = os.open(control_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
             with os.fdopen(fd, 'w') as stream:
                 json.dump({'token': control_token}, stream)
+        # Only the virtual service and the portal's dedicated group can read this key.
+        control_path.chmod(0o640)
         self.tokens.add(control_token)
         self.save()
 
