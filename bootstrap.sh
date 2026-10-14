@@ -11,7 +11,7 @@ apt-get update
 apt-get install -y ca-certificates curl tar
 WORK=$(mktemp -d)
 trap 'rm -rf -- "$WORK"' EXIT
-curl --fail --location --proto '=https' --tlsv1.2 "https://github.com/$REPOSITORY/archive/refs/tags/v4.4.0-beta.2.tar.gz" -o "$WORK/source.tar.gz"
+curl --fail --location --proto '=https' --tlsv1.2 "https://github.com/$REPOSITORY/archive/refs/tags/v4.4.0-beta.3.tar.gz" -o "$WORK/source.tar.gz"
 mkdir "$WORK/source"
 tar --extract --gzip --file "$WORK/source.tar.gz" --directory "$WORK/source" --strip-components=1
 bash "$WORK/source/install.sh"

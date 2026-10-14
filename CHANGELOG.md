@@ -1,5 +1,16 @@
 # Changelog
 
+## 4.4.0-beta.3 - 2026-10-14
+
+- Fix virtual-switch access permissions on fresh Debian installations.
+- Monitor receiver registration separately from the virtual On/Off state.
+- Add **Setup → Repair Sync+ registration** to recover after the mobile editor removes the receiver.
+- Keep repairs explicit and preserve the other receivers.
+- Document that opening the mobile Sync+ editor can remove the virtual receiver without saving.
+
+Verified on a fresh Debian 12 installation: reboot persistence, TV profiles, loss/resumption of color frames, and Home Assistant controls.
+
+
 ## 4.4.0-beta.2 - 2026-10-14
 
 - Register the virtual receiver directly in the 4D through API pairing during installation.

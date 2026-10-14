@@ -23,13 +23,13 @@ Run these commands as root on a fresh Debian 12 system:
 
 ```bash
 apt-get update && apt-get install -y ca-certificates curl
-curl -fL https://raw.githubusercontent.com/Cristef/nanoleaf-hue-bridge/v4.4.0-beta.2/bootstrap.sh -o /root/nanoleaf-hue-bootstrap.sh
+curl -fL https://raw.githubusercontent.com/Cristef/nanoleaf-hue-bridge/v4.4.0-beta.3/bootstrap.sh -o /root/nanoleaf-hue-bootstrap.sh
 bash /root/nanoleaf-hue-bootstrap.sh
 ```
 
 The installer updates Debian, installs the dependencies and sets up the services. It then asks for the device addresses and guides you through pairing and Hue area selection.
 
-You can also download the [release ZIP](https://github.com/Cristef/nanoleaf-hue-bridge/releases/tag/v4.4.0-beta.2), extract it and run `bash install.sh`.
+You can also download the [release ZIP](https://github.com/Cristef/nanoleaf-hue-bridge/releases/tag/v4.4.0-beta.3), extract it and run `bash install.sh`.
 
 When the wizard opens the Nanoleaf pairing window, choose **power-button pairing** in Nanoleaf Desktop (that is the default). There is no physical button to press: the wizard opens that window for two minutes. The installer then registers the virtual receiver directly in the 4D through its API. Hold the physical 4D power button for five seconds when prompted. Existing receivers and screen dimensions are preserved; a new virtual receiver starts at the center of the configured space. Start Screen Mirror on the 4D after setup.
 
