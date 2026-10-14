@@ -1,5 +1,14 @@
 # Changelog
 
+## 4.4.0-beta.2 - 2026-10-14
+
+- Register the virtual receiver directly in the 4D through API pairing during installation.
+- Preserve existing Sync+ receivers and screen dimensions, and save a private backup before registration.
+- Add registration to the maintenance menu for existing installations.
+- Correct instructions that assumed Nanoleaf Desktop included a Sync+ configuration editor.
+- Verify nine-panel reception and Hue streaming on a fresh Debian 12 installation.
+
+
 ## 4.4.0-beta.1 - 2026-10-14
 
 - Add a TV layout with draggable Hue lights and preview/save panel assignments.

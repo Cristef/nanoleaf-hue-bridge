@@ -141,10 +141,17 @@ def desktop_pairing(data, force=False):
         print('iPhone and HomeKit pairing are not supported.')
         ask('Press Enter after pairing, or to finish pairing later in the web portal')
         if health(data).get('pairing', {}).get('apiPaired'):
-            print('API pairing verified. Configure this virtual device in the 4D Sync+ settings in Desktop.')
+            print('Desktop API pairing verified. Next, register the receiver in the 4D through its API.')
             return
         if choose('No API pairing detected', [('Finish later in the portal', 'later'), ('Open another pairing window', 'retry')]) == 'later':
             return
+
+
+def syncplus_registration(data):
+    from syncplus_setup import register
+    result = register(data, lambda: ask('Hold the physical 4D power button for five seconds, then press Enter'))
+    print('Sync+ registration verified. Other receivers and screen dimensions are preserved.')
+    print('Virtual panels: ' + str(result['panels']))
 
 
 async def hue(data):
@@ -209,12 +216,16 @@ def setup():
     command('systemctl', 'daemon-reload')
     command('systemctl', 'enable', '--now', VIRTUAL)
     desktop_pairing(data)
+    if health(data).get('pairing', {}).get('apiPaired'):
+        syncplus_registration(data)
+    else:
+        print('Sync+ registration is pending. Complete Desktop pairing, then use Register receiver in 4D Sync+ from the maintenance menu.')
     asyncio.run(hue(data))
     from portal_install import provision
     provision(data)
     command('systemctl', 'enable', '--now', SYNC, PANEL, 'nanoleaf-hue-maintenance', 'nanoleaf-hue-name', 'nanoleaf-hue-discovery')
     print('\nInstallation complete. Turn on/off ' + data['name'] + ' in the web portal or Nanoleaf Desktop.')
-    print('Keep the virtual device selected in Desktop Sync+ and enable automatic startup of your Debian host.')
+    print('Enable Screen Mirror on the 4D and automatic startup of your Debian host. Desktop does not provide the Sync+ configuration editor.')
     print('Short URL: http://'+data.get('portal_name','nanoleaf-hue.local'))
     print('Portal: http://' + data['ip'] + ':8080  -  create your username and password there.')
     print('Map panel colors, adjust brightness and save profiles in the portal. Maintenance menu: nanoleaf-hue')
@@ -224,7 +235,7 @@ def menu():
     while True:
         choice = choose('Nanoleaf Hue Bridge', [
             ('Status', 'status'), ('Diagnostics', 'logs'), ('Change Hue area', 'area'),
-            ('Pair with Nanoleaf Desktop', 'pair'), ('Complete setup', 'setup'),
+            ('Pair with Nanoleaf Desktop', 'pair'), ('Register receiver in 4D Sync+', 'syncplus'), ('Complete setup', 'setup'),
             ('Restart services', 'restart'), ('Deactivate services', 'remove'), ('Exit', 'exit')])
         if choice == 'exit': return
         if choice == 'setup': setup(); continue
@@ -236,6 +247,8 @@ def menu():
             command('journalctl', '-u', SYNC, '-u', VIRTUAL, '-u', PANEL, '-n', '50', '--no-pager')
         elif choice == 'pair':
             desktop_pairing(json.loads(PATH.read_text()), force=True)
+        elif choice == 'syncplus':
+            syncplus_registration(json.loads(PATH.read_text()))
         elif choice == 'area':
             data = json.loads(PATH.read_text())
             command('systemctl', 'stop', SYNC)

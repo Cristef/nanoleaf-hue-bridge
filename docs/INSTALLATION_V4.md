@@ -36,8 +36,10 @@ You can finish pairing later: open the portal, create your login, go to
 **Setup**, and click **Open Desktop pairing (120 seconds)**. Each click opens
 another two-minute window. Only an authenticated portal user can request it.
 
-In Nanoleaf Desktop, include the virtual receiver in your 4D Sync+ configuration,
-set its placement and save. Start Screen Mirror on the 4D. Pairing the API client
+The installer registers the virtual receiver directly in the 4D Sync+ configuration.
+Hold the physical 4D power button for five seconds when prompted to authorize its API.
+Existing receivers and screen dimensions are preserved; the new receiver starts at
+the center of the configured space. Start Screen Mirror on the 4D. Pairing the API client
 alone does not register a Sync+ recipient: the configuration step is required.
 
 **iPhone/iPad and HomeKit pairing are not supported.** Do not configure the
@@ -67,7 +69,7 @@ stream; new frames resume it if the virtual is on.
 ## Diagnostics
 
 - **API not paired:** reopen the window and finish power-button pairing in Desktop.
-- **Paired, no colors:** check Desktop's 4D Sync+ recipient selection, Screen Mirror,
+- **Paired, no colors:** check 4D receiver registration, Screen Mirror,
   source IP, local UDP 60222 reachability and Wi-Fi client isolation.
 - **Colors visible, Hue waiting/error:** verify Hue pairing, area membership and
   that another application is not using the same Entertainment area.

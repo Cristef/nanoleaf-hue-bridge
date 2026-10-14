@@ -11,7 +11,7 @@ import time
 import urllib.request
 from portal_settings import atomic_json, revision, TUNING
 
-VERSION='4.4.0-beta.1'
+VERSION='4.4.0-beta.2'
 SOURCE=Path('/var/lib/nanoleaf-hue-sync/source.json')
 
 def channel_settings(value):
@@ -61,7 +61,7 @@ def diagnose(health,hue,area,now):
     recent=now-hue.get('time',0)<5
     if not health:return {'code':'receiver-unavailable','message':'Virtual receiver unavailable. Check its service.','severity':'error'}
     if health.get('on') is False:return {'code':'off','message':'Virtual device is off. Turn synchronization on to send colors to Hue.','severity':'info'}
-    if not fresh:return {'code':'no-sync-data','message':'No recent 4D frames. Check Screen Mirror, Desktop Sync+ selection, source IP and Wi-Fi isolation.','severity':'warning'}
+    if not fresh:return {'code':'no-sync-data','message':'No recent 4D frames. Check Screen Mirror, 4D receiver registration, source IP and Wi-Fi isolation.','severity':'warning'}
     if not area.get('channels'):return {'code':'no-hue-area','message':'Select a paired Hue Entertainment area with lights.','severity':'warning'}
     if recent and hue.get('mappingError'):return {'code':'mapping-error','message':hue['mappingError'],'severity':'warning'}
     if recent and hue.get('phase')=='busy':return {'code':'hue-busy','message':'Another app is using this Hue area. Stop its stream before retrying.','severity':'warning'}

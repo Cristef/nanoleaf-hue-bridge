@@ -66,7 +66,7 @@ def source_update():
     if ipaddress.ip_address(data['source_ip']) not in ipaddress.ip_network(data['ip']+'/'+str(data.get('prefix',24)),strict=False):raise ValueError('Source must share LAN')
     try:
         atomic_json(config_path,data);run('systemctl','restart','nanoleaf-hue-virtual');time.sleep(2);run('systemctl','is-active','--quiet','nanoleaf-hue-virtual')
-        atomic_json(STATE/'source-applied.json',{'ip':data['source_ip']});status('complete','4D source updated. Register the virtual receiver in Desktop Sync+.')
+        atomic_json(STATE/'source-applied.json',{'ip':data['source_ip']});status('complete','4D source updated. Register the virtual receiver in the 4D from the terminal maintenance menu.')
     except Exception:
         config_path.write_bytes(old);atomic_json(STATE/'source.json',{'ip':json.loads(old)['source_ip']});run('systemctl','restart','nanoleaf-hue-virtual');raise
 
