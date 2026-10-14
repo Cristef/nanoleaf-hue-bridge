@@ -1,5 +1,15 @@
 # Changelog
 
+## 4.4.0-beta.1 - 2026-10-14
+
+- Add a TV layout with draggable Hue lights and preview/save panel assignments.
+- Add a six-step setup guide in the web portal.
+- Advertise the automation API through mDNS for Home Assistant discovery.
+- Add credential-free integration diagnostics.
+- Preserve TV positions in saved profiles and settings exports.
+
+Fresh Debian installation and pairing are being tested in this prerelease.
+
 ## 4.3.0 - 2026-10-13
 
 - Package the Home Assistant integration support validated on a Home Assistant OS VM.

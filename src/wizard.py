@@ -203,7 +203,7 @@ def setup():
                 'identity': '02:' + ':'.join(f'{x:02x}' for x in secrets.token_bytes(5)),
                 'hue_area': '00000000-0000-0000-0000-000000000000'}
         save(data)
-    for unit in (VIRTUAL, SYNC, PANEL, 'nanoleaf-hue-maintenance', 'nanoleaf-hue-name'):
+    for unit in (VIRTUAL, SYNC, PANEL, 'nanoleaf-hue-maintenance', 'nanoleaf-hue-name', 'nanoleaf-hue-discovery'):
         shutil.copyfile(ROOT / 'systemd' / (unit + '.service'),
                         '/etc/systemd/system/' + unit + '.service')
     command('systemctl', 'daemon-reload')
@@ -212,7 +212,7 @@ def setup():
     asyncio.run(hue(data))
     from portal_install import provision
     provision(data)
-    command('systemctl', 'enable', '--now', SYNC, PANEL, 'nanoleaf-hue-maintenance', 'nanoleaf-hue-name')
+    command('systemctl', 'enable', '--now', SYNC, PANEL, 'nanoleaf-hue-maintenance', 'nanoleaf-hue-name', 'nanoleaf-hue-discovery')
     print('\nInstallation complete. Turn on/off ' + data['name'] + ' in the web portal or Nanoleaf Desktop.')
     print('Keep the virtual device selected in Desktop Sync+ and enable automatic startup of your Debian host.')
     print('Short URL: http://'+data.get('portal_name','nanoleaf-hue.local'))
@@ -257,7 +257,7 @@ def menu():
             command('systemctl', 'start', SYNC)
         elif choice == 'remove':
             if ask('Deactivate services? [y/N]', 'n').lower() == 'y':
-                command('systemctl', 'disable', '--now', PANEL, SYNC, VIRTUAL, 'nanoleaf-hue-maintenance', 'nanoleaf-hue-name')
+                command('systemctl', 'disable', '--now', PANEL, SYNC, VIRTUAL, 'nanoleaf-hue-maintenance', 'nanoleaf-hue-name', 'nanoleaf-hue-discovery')
                 print('Services deactivated; configuration and pairings are preserved.')
 
 

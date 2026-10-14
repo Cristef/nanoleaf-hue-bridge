@@ -1,0 +1,16 @@
+[Unit]
+Description=Nanoleaf Hue automation API discovery
+Requires=avahi-daemon.service nanoleaf-hue-panel.service
+After=avahi-daemon.service nanoleaf-hue-panel.service network-online.target
+[Service]
+User=root
+EnvironmentFile=/etc/nanoleaf-hue/portal.env
+ExecStart=/opt/nanoleaf-hue/venv/bin/python /opt/nanoleaf-hue/portal_discovery.py
+Restart=on-failure
+RestartSec=5
+CapabilityBoundingSet=
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+[Install]
+WantedBy=multi-user.target

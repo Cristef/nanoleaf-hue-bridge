@@ -41,6 +41,10 @@ class Handler(BaseHandler):
             name = self.path[1:]
             mime = 'text/javascript; charset=utf-8' if name.endswith('.js') else 'text/css; charset=utf-8'
             return self.respond(200, (Path(__file__).parent/'web'/name).read_bytes(), mime)
+        if self.path in ('/onboarding.js','/onboarding.css'):
+            name=self.path[1:]
+            mime='text/javascript; charset=utf-8' if name.endswith('.js') else 'text/css; charset=utf-8'
+            return self.respond(200,(Path(__file__).parent/'web'/name).read_bytes(),mime)
         if self.path == '/integration.js':
             return self.respond(200, (Path(__file__).parent/'web'/'integration.js').read_bytes(), 'text/javascript; charset=utf-8')
         if self.path == '/advanced.js':
@@ -92,7 +96,7 @@ class Handler(BaseHandler):
                 control.auth.logout(self.headers.get('Cookie'))
                 self.extra_headers = {'Set-Cookie': 'nhb_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0'}
                 return self.respond(200, {'authenticated': False})
-            actions = {'/api/integration/tokens': control.automation.manage, '/api/mapping': control.save, '/api/brightness': control.save_brightness,
+            actions = {'/api/tv/preview': control.preview_tv, '/api/tv/save': control.save_tv, '/api/integration/tokens': control.automation.manage, '/api/mapping': control.save, '/api/brightness': control.save_brightness,
                        '/api/tuning': control.save_tuning, '/api/profile': control.profile,
                        '/api/area': control.select_area, '/api/import/preview': control.import_preview,
                        '/api/import': control.import_settings, '/api/identify': control.identify,
@@ -133,7 +137,7 @@ def main():
         short_server = ThreadingHTTPServer((os.environ['PANEL_BIND'], 80), Handler)
         short_server.control = control
         threading.Thread(target=short_server.serve_forever, daemon=True).start()
-    print('Nanoleaf Hue Bridge portal 4.3.0 ready', flush=True)
+    print('Nanoleaf Hue Bridge portal 4.4.0-beta.1 ready', flush=True)
     server.serve_forever()
 
 

@@ -11,7 +11,7 @@ import urllib.request
 from portal_settings import atomic_json
 
 ROOT=Path('/opt/nanoleaf-hue');STATE=Path('/var/lib/nanoleaf-hue-sync');RUNTIME=Path('/run/nanoleaf-hue')
-FILES={'automation_api.py','web/integration.js','advanced_portal.py','test_patterns.py','portal_control.py','portal_settings.py','control_panel.py','control_panel_v2.py','daily_sync.py','hue_sync.py','color_response.py','brightness.py','panel_mapping.py','portal_auth.py','extcontrol_probe.py','direct_stats.py','web/index.html','web/style.css','web/app.js','web/portal.js','web/advanced.js','web/shell.js','web/shell.css'}
+FILES={'tv_mapping.py','portal_discovery.py','web/onboarding.js','web/onboarding.css','automation_api.py','web/integration.js','advanced_portal.py','test_patterns.py','portal_control.py','portal_settings.py','control_panel.py','control_panel_v2.py','daily_sync.py','hue_sync.py','color_response.py','brightness.py','panel_mapping.py','portal_auth.py','extcontrol_probe.py','direct_stats.py','web/index.html','web/style.css','web/app.js','web/portal.js','web/advanced.js','web/shell.js','web/shell.css'}
 def status(phase,message):atomic_json(RUNTIME/'maintenance-status.json',{'phase':phase,'message':message,'time':time.time()})
 def run(*args):subprocess.run(args,check=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=60)
 def validate_bundle(archive,manifest):

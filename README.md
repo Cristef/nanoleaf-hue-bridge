@@ -25,13 +25,13 @@ Run these commands as root on a fresh Debian 12 system:
 
 ```bash
 apt-get update && apt-get install -y ca-certificates curl
-curl -fL https://raw.githubusercontent.com/Cristef/nanoleaf-hue-bridge/v4.3.0/bootstrap.sh -o /root/nanoleaf-hue-bootstrap.sh
+curl -fL https://raw.githubusercontent.com/Cristef/nanoleaf-hue-bridge/v4.4.0-beta.1/bootstrap.sh -o /root/nanoleaf-hue-bootstrap.sh
 bash /root/nanoleaf-hue-bootstrap.sh
 ```
 
 The installer updates Debian, installs the dependencies and sets up the services. It then asks for the device addresses and guides you through pairing and Hue area selection.
 
-You can also download the [release ZIP](https://github.com/Cristef/nanoleaf-hue-bridge/releases/tag/v4.3.0), extract it and run `bash install.sh`.
+You can also download the [release ZIP](https://github.com/Cristef/nanoleaf-hue-bridge/releases/tag/v4.4.0-beta.1), extract it and run `bash install.sh`.
 
 When the wizard opens the Nanoleaf pairing window, choose **power-button pairing** in Nanoleaf Desktop. There is no physical button to press: the wizard opens that window for two minutes. Next, add the virtual device to the 4D's Sync+ configuration in Desktop, set its position and start Screen Mirror.
 
@@ -43,7 +43,9 @@ Open `http://DEBIAN_IP:8080/` and create your portal account. The [installation 
 
 Use `http://nanoleaf-hue.local/`, or `http://DEBIAN_IP:8080/` if your network does not resolve the local name.
 
-Start with **Mapping**: select a Hue light, then choose the virtual panels whose colors it should follow. A light can follow one panel, a group of panels or the average of all panels. Position-based suggestions are available if you have arranged the lights in the Hue Entertainment area.
+Open **Setup → Open setup guide** for a six-step walkthrough of the 4D source, Desktop pairing, Hue Bridge, Entertainment area, mapping and stream checks.
+
+Start with **Mapping**: select a Hue light, then choose the virtual panels whose colors it should follow. A light can follow one panel, a group of panels or the average of all panels. You can also drag your lights around a TV diagram, preview their panel assignments and save the layout. Positions are included when you save a profile. Position-based suggestions remain available for lights arranged in the Hue Entertainment area.
 
 The other pages cover the rest of the setup:
 

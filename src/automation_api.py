@@ -19,6 +19,13 @@ class AutomationAPI:
         self.failures={}
     def record(self):
         return json.loads(self.path.read_text()) if self.path.exists() else {'id':str(uuid.uuid4()),'tokens':[]}
+    def ensure_identity(self):
+        with self.lock:
+            if not self.path.exists():atomic_json(self.path,self.record())
+            return self.record()['id']
+    def diagnostic_data(self):
+        state=self.state()
+        return {key:state.get(key) for key in ('apiVersion','version','enabled','reachable','status','syncFramesFresh','brightness','frameAge','diagnostics')}
     def manage(self, payload):
         with self.lock:
             data=self.record(); operation=payload.get('operation','list')
@@ -61,7 +68,8 @@ class AutomationAPI:
         return {'apiVersion':1,'id':identity['id'],'name':'Nanoleaf Hue Bridge','version':state['version'],
             'enabled':state.get('on'),'reachable':reachable,'status':status,'syncFramesFresh':bool(state.get('fresh')),
             'brightness':stream['brightness']['global'],'profiles':names,'profile':matching[0] if matching else None,
-            'frameAge':diag.get('frameAge'),'capabilities':['sync','brightness','profile'],'revision':revision(config)}
+            'frameAge':diag.get('frameAge'),'capabilities':['sync','brightness','profile','diagnostics'],'revision':revision(config),
+            'diagnostics':{'lightCount':len(state['area']['channels']),'panelCount':len(state.get('panels',[])),'hueFrames':diag.get('hueFrames',0),'apiPaired':bool(diag.get('apiPaired'))}}
     def command(self,payload):
         if set(payload)!={'command','value'}:raise ValueError('Invalid command')
         c=self.control;command=payload['command'];value=payload['value']
@@ -78,6 +86,7 @@ class AutomationAPI:
     def handle(self,handler):
         try:
             self.authorize(handler)
+            if handler.command=='GET' and handler.path=='/api/integration/v1/diagnostics':return handler.respond(200,self.diagnostic_data())
             if handler.command=='GET' and handler.path=='/api/integration/v1/state':return handler.respond(200,self.state())
             if handler.command!='POST' or handler.path!='/api/integration/v1/command':return handler.respond(404,{'error':'Resource not found'})
             if handler.headers.get('Transfer-Encoding') or handler.headers.get('Content-Type','').split(';')[0]!='application/json':raise ValueError()

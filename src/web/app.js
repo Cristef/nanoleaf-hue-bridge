@@ -43,8 +43,9 @@ function render(){
  $("draft-status").textContent=dirty?"Preview only. Save mappings to apply to the lights.":"Saved mappings are applied during streaming.";
  renderPortal();
  if(typeof renderShell === "function")renderShell();
+ if(typeof renderOnboarding === "function")renderOnboarding();
 }
-async function request(path,payload){const response=await fetch(path,{method:"POST",headers:{"Content-Type":"application/json","X-Control-Token":csrf},body:JSON.stringify({...payload,configRevision:state?.configRevision})});const data=await response.json();if(response.status===401)showLogin();if(!response.ok)throw new Error(data.error||"Operation failed.");if(data.configRevision)state.configRevision=data.configRevision;return data;}
+async function request(path,payload){const response=await fetch(path,{method:"POST",headers:{"Content-Type":"application/json","X-Control-Token":csrf},body:JSON.stringify({...payload,configRevision:payload.configRevision??state?.configRevision})});const data=await response.json();if(response.status===401)showLogin();if(!response.ok)throw new Error(data.error||"Operation failed.");if(data.configRevision)state.configRevision=data.configRevision;return data;}
 $("save").addEventListener("click",async()=>{busy=true;render();try{const saved=await request("/api/mapping",{mapping:draft,revision});draft=clone(saved.mapping);revision=saved.revision;dirty=false;notice("Mappings saved. Lights update during streaming.");}catch(error){notice(error.message);}finally{busy=false;render();}});
 $("reset").addEventListener("click",()=>{draft={};edited();notice("General average for all lights. Save mappings to apply.");});
 $("sync").addEventListener("change",async()=>{const on=$("sync").checked;busy=true;render();try{await request("/api/switch",{on});state.on=on;notice(on?"Synchronization on. Waiting for colors.":"Synchronization off.");}catch(error){notice(error.message);}finally{busy=false;render();}});

@@ -17,13 +17,16 @@ from portal_auth import Auth
 
 from advanced_portal import AdvancedControl
 
-class Control(AdvancedControl, BaseControl):
+from tv_mapping import TVMapping
+
+class Control(TVMapping, AdvancedControl, BaseControl):
     def __init__(self):
         super().__init__()
         self.store = Store(os.environ.get('PANEL_CONFIG', str(self.mapping_path.with_name('portal-settings.json'))))
         self.auth = Auth(self.mapping_path.with_name('portal-access.json'))
         from automation_api import AutomationAPI
         self.automation = AutomationAPI(self)
+        self.automation.ensure_identity()
         self.catalog = {}
         self.job = {'phase': 'idle'}
         self.job_lock = threading.Lock()
@@ -87,7 +90,7 @@ class Control(AdvancedControl, BaseControl):
             result['panels'] = result.get('panels') or []
             if result['phase'] == 'waiting-for-colors':
                 result['diagnostics']['huePhase'] = 'waiting'
-            result.update({'version': '4.3.0', 'configRevision': revision(config), 'activeSettings': stream,
+            result.update({'version': '4.4.0-beta.1', 'configRevision': revision(config), 'activeSettings': stream,
                            'tuningRevision': revision(stream['tuning']),
                            'profiles': [{'name': name, 'bridge': value['bridge'], 'area': value['area']}
                                         for name, value in config['profiles'].items()],
@@ -115,6 +118,7 @@ class Control(AdvancedControl, BaseControl):
         validate_mapping(stream['mapping'], channels, panels)
         validate_brightness(stream['brightness'], channels)
         if set(stream.get('channelSettings',{})) - {str(c) for c in channels}: raise ValueError('Unknown channel settings')
+        if set(stream.get('tvPositions',{})) - {str(c) for c in channels}: raise ValueError('Unknown TV positions')
         return stream
 
     def change(self, payload, transform):
@@ -179,6 +183,7 @@ class Control(AdvancedControl, BaseControl):
             value.update(bridge=bridge, area=area, mapping={},
                          brightness={'global': value['brightness']['global'], 'channels': {}})
             value.pop('channelSettings',None)
+            value.pop('tvPositions',None)
             config['active'] = self.validate_available(value)
         return self.change(payload, modify)
 
