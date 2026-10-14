@@ -90,7 +90,7 @@ class Control(TVMapping, AdvancedControl, BaseControl):
             result['panels'] = result.get('panels') or []
             if result['phase'] == 'waiting-for-colors':
                 result['diagnostics']['huePhase'] = 'waiting'
-            result.update({'version': '4.4.0-beta.3', 'configRevision': revision(config), 'activeSettings': stream,
+            result.update({'version': '4.4.0', 'configRevision': revision(config), 'activeSettings': stream,
                            'tuningRevision': revision(stream['tuning']),
                            'profiles': [{'name': name, 'bridge': value['bridge'], 'area': value['area']}
                                         for name, value in config['profiles'].items()],

@@ -1,4 +1,4 @@
-# Install and pair version 4
+# Install and pair 4.4.0
 
 ## Prepare the devices
 
@@ -42,11 +42,10 @@ Existing receivers and screen dimensions are preserved; the new receiver starts 
 the center of the configured space. Start Screen Mirror on the 4D. Pairing the API client
 alone does not register a Sync+ recipient: the configuration step is required.
 
-**iPhone/iPad and HomeKit pairing are not supported.** Do not configure the
-virtual receiver's Sync+ placement in the iPhone app. In the tested installation,
-that editor displayed the virtual as selected but removed it from the actual
-4D receiver configuration when saving. Version 4 does not start a HomeKit
-accessory service and does not provide a HomeKit QR code or PIN.
+**iPhone/iPad and HomeKit pairing are not supported.** Opening the mobile Sync+
+editor can remove the virtual receiver even without saving. Recover from
+**Setup → Repair Sync+ registration** in the portal. Version 4.4 does not start
+a HomeKit accessory service and does not provide a HomeKit QR code or PIN.
 
 ## Hue and portal
 
@@ -79,6 +78,6 @@ Use `nanoleaf-hue` for pairing, status, diagnostics, changing area, restarting o
 deactivating services. Credentials stay on the Debian system and are excluded from
 settings exports. Do not expose the unencrypted LAN portal to the Internet.
 
-## Portal 4.1
+## Web portal
 
 Use http://nanoleaf-hue.local/ or http://DEBIAN_IP:8080/. The Live, Mapping, Color, Profiles, Setup and System views replace the long single-page portal. See the README screenshots and instructions for themes, immersive preview, mapping suggestions and temporary tests. Settings exports include per-light response overrides but no credentials.

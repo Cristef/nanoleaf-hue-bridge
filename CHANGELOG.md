@@ -1,5 +1,17 @@
 # Changelog
 
+## 4.4.0 - 2026-10-14
+
+- Release the installer validated on two fresh Debian 12 systems.
+- Add direct 4D API registration, preserving the other Sync+ receivers.
+- Add TV light placement, panel-assignment previews and profile persistence.
+- Add a six-step portal setup guide.
+- Fix virtual-switch permissions on clean installations.
+- Add registration monitoring and explicit repair after mobile Sync+ changes.
+- Add Home Assistant discovery and credential-free diagnostics.
+- Update portal screenshots and publish installation and troubleshooting FAQs.
+
+
 ## 4.4.0-beta.3 - 2026-10-14
 
 - Fix virtual-switch access permissions on fresh Debian installations.

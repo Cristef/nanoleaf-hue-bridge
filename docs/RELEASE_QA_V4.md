@@ -1,30 +1,17 @@
-# Version 4 portal QA
+# Version 4.4 release validation
 
-The tested flow was sign-in -> Settings & pairing -> Start Nanoleaf pairing ->
-two-minute pairing notice. The backend and UI used isolated synthetic state and
-a mock pairing endpoint; no production device was modified.
-
-Environment: Codex in-app browser, desktop viewport, local HTTP test server.
-The standalone Browser plugin was unavailable; the available CUA browser APIs
-provided the browser interaction and developer log checks.
+Two fresh Debian 12 installations completed Desktop pairing, physical 4D API authorization, direct Sync+ registration and Hue Entertainment pairing. The second installation used the published beta.3 archive without application patches.
 
 | Check | Result |
 | --- | --- |
-| Page identity / meaningful content | Nanoleaf Hue Bridge, version 4.0.0 |
-| Login flow | Test account signed in successfully |
-| Virtual panels / lights | Nine panels and ten synthetic light rows rendered |
-| Pairing interaction | Button returned 120-second Desktop pairing notice |
-| Browser console | No error/warning entries in the validated flow |
-| Visual evidence | Screenshots below; controls readable, no overlay |
+| Direct receiver | Nine virtual panels registered; other receivers and screen dimensions preserved |
+| Hue output | Two physical lights followed the TV stream |
+| Portal controls | On/Off, TV mapping, profiles and brightness verified |
+| Restart | Services started automatically; account, pairings, identity and saved settings persisted |
+| Stream interruption | Entertainment released when frames stopped and resumed when they returned |
+| Home Assistant | Synchronization, brightness and profile commands verified on Home Assistant OS |
+| Documentation screenshots | English portal rendered with synthetic device data; no browser warnings or errors |
 
-Automated HTTP regression coverage additionally rejects anonymous and foreign-origin
-pairing requests. API tests check expiration, internal authorization and persistent
-external tokens. Full Linux suite: 63 tests.
+Automated Linux tests cover API authorization, malformed UDP rejection, ten-channel mapping, configuration validation, installer permissions and receiver registration. GitHub Actions runs the suite on Python 3.11 and 3.12, together with syntax checks.
 
-Hardware limits: tested deployment has two Hue lights; ten channels are simulated.
-Fresh Debian 12 installation with real Desktop-only pairing and mobile browser
-layout remain to be tested. The pairing screenshot uses a mocked endpoint, not a
-claim of a new physical pairing.
-
-![Virtual panel mapping](images/portal-lights-v4.png)
-![Desktop pairing flow](images/portal-pairing-v4.png)
+Hardware validation used two Hue lights. Larger physical areas and other Nanoleaf firmware versions need wider testing. Opening the mobile Sync+ editor can remove the virtual receiver; the explicit portal repair action restores registration. iPhone and HomeKit onboarding are unsupported.
