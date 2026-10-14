@@ -4,7 +4,7 @@ Bring your Philips Hue lights into a Nanoleaf 4D setup. The bridge appears as a 
 
 It runs on Debian 12 and provides a web portal for mapping colors to lights, adjusting the output and saving profiles. You can also control it from [Home Assistant](https://github.com/Cristef/nanoleaf-hue-bridge-ha).
 
-**Setup requires Nanoleaf Desktop on the same LAN.** iPhone, iPad and HomeKit pairing are not supported. The project is currently distributed as a prerelease.
+**Setup requires Nanoleaf Desktop on the same LAN.** iPhone, iPad and HomeKit pairing are not supported actually. The project is currently distributed as a prerelease.
 
 ## What you need
 
@@ -16,8 +16,6 @@ It runs on Debian 12 and provides a web portal for mapping colors to lights, adj
 Debian can run on a physical machine, a VM or an LXC container. Proxmox is optional. The installer expects systemd, so a minimal Docker container is not suitable.
 
 Keep the Debian system, 4D and Nanoleaf Desktop on the same LAN for discovery and pairing. If you use VLANs or Wi-Fi client isolation, configure network access before installing. The installer handles the application, not the network.
-
-Physical Shapes, device MAC addresses and HomeKit codes are not needed.
 
 ## Install
 
@@ -33,7 +31,7 @@ The installer updates Debian, installs the dependencies and sets up the services
 
 You can also download the [release ZIP](https://github.com/Cristef/nanoleaf-hue-bridge/releases/tag/v4.4.0-beta.1), extract it and run `bash install.sh`.
 
-When the wizard opens the Nanoleaf pairing window, choose **power-button pairing** in Nanoleaf Desktop. There is no physical button to press: the wizard opens that window for two minutes. Next, add the virtual device to the 4D's Sync+ configuration in Desktop, set its position and start Screen Mirror.
+When the wizard opens the Nanoleaf pairing window, choose **power-button pairing** in Nanoleaf Desktop (that is the default). There is no physical button to press: the wizard opens that window for two minutes. Next, add the virtual device to the 4D's Sync+ configuration in Desktop, set its position and start Screen Mirror.
 
 For Hue, press the Bridge's link button when prompted and choose your Entertainment area. The services are enabled at boot; enable autostart for the host or VM/container as well if you want the bridge available all the time.
 
